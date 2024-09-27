@@ -2,19 +2,19 @@
 New simplified config file format
 Look at [gocfl2.toml](./config/gocfl2.toml)
 
-# Installation
+## Installation
 
-## Via go ecosystem
+### Via go ecosystem
 
 `go install github.com/ocfl-archive/gocfl/v2/gocfl@latest`
 
-## Via GitHub repository
+### Via GitHub repository
 
 * navigate to gocfl directory (you should see `main.go`).
 * run `go tidy` to update local dependencies.
 * run `go build` to create a locally compiled gocfl binary.
 
-# Go OCFL Implementation
+## Go OCFL Implementation
 
 This library supports the Oxford Common Filesystem Layout ([OCFL](https://ocfl.io/)) 
 and focuses on creation, update, validation and extraction of ocfl StorageRoots and Objects.
@@ -32,16 +32,16 @@ GOCFL command line tool supports the following subcommands
 
 There's a [quickstart guide](docs/quickstart.md) available.
 
-## Why
+### Why
 There are several [OCFL tools & libraries](https://github.com/OCFL/spec/wiki/Implementations#code-libraries-validators-and-other-tools) 
-which already exists. This software is build with the following motivation.
+which already exists. This software is built with the following motivation.
 
-### I/O Performance
+#### I/O Performance
 Regarding performance, Storage I/O generates the main performance issues. Therefor, every file 
 should be read and written only once. Only in case of deduplication, the checksum of a file is
 calculated before ingest and a second time while ingesting. 
 
-### Container 
+#### Container 
 Serialization of an OCFL Storage Root into a container format like ZIP must not generate 
 overhead on disk I/O. Therefor generation of an OCFL Container is possible without an intermediary
 OCFL Storage Root on a filesystem.  
@@ -50,7 +50,7 @@ OCFL Storage Root on a filesystem.
 For storing OCFL containers in low-security locations (cloud storage, etc.), it's possible to 
 create an AES-256 encrypted container on ingest.
 
-### Extensions
+#### Extensions
 The extensions described in the OCFL standard are quite open in their functionality and may 
 belong to the [Storage Root](https://ocfl.io/1.1/spec/#storage-root-extensions) or
 [Object](https://ocfl.io/1.1/spec/#object-extensions). Since there's no specification of a 
@@ -61,7 +61,7 @@ This library identifies 7 different extension hooks so far.
 When content is ingested into OCFL objects, technical metadata should be extracted and stored alongside the manifest data. This allows technical metadata to be extracted alongside the content.
 Since the OCFL structure is quite rigid, there's a need for a special extension to support this.
 
-## Functionality
+### GOCFL Functionality
 
 - [x] Supports local filesystems
 - [x] Supports S3 Cloud Storage (via [MinIO Client SDK](https://github.com/minio/minio-go))
@@ -105,9 +105,9 @@ Since the OCFL structure is quite rigid, there's a need for a special extension 
   - [x] [NNNN-filesystem](docs/NNNN-filesystem.md) (filesystem metadata extension)
   - [x] [NNNN-thumbnail](docs/NNNN-thumbnail.md) (generation of thumbnails)
 
-## Command Line Interface
+### Command Line Interface
 
-```
+```text
 A fast and reliable OCFL creator, extractor and validator.
 https://github.com/ocfl-archive/gocfl
 Jürgen Enge (University Library Basel, juergen@info-age.net)
@@ -143,4 +143,3 @@ Flags:
 
 Use "gocfl [command] --help" for more information about a command.
 ```
-
