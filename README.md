@@ -4,7 +4,15 @@ Look at [gocfl2.toml](./config/gocfl2.toml)
 
 # Installation
 
+## Via go ecosystem
+
 `go install github.com/ocfl-archive/gocfl/v2/gocfl@latest`
+
+## Via GitHub repository
+
+* navigate to gocfl directory (you should see `main.go`).
+* run `go tidy` to update local dependencies.
+* run `go build` to create a locally compiled gocfl binary.
 
 # Go OCFL Implementation
 
