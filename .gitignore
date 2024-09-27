@@ -9,3 +9,4 @@
 *.sum
 go.work
 /data/temp/
+gocfl
