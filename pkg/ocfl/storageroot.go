@@ -2,13 +2,14 @@ package ocfl
 
 import (
 	"context"
-	"emperror.dev/errors"
 	"fmt"
-	"github.com/je4/utils/v2/pkg/checksum"
-	"github.com/je4/utils/v2/pkg/zLogger"
 	"io"
 	"io/fs"
 	"regexp"
+
+	"emperror.dev/errors"
+	"github.com/je4/utils/v2/pkg/checksum"
+	"github.com/je4/utils/v2/pkg/zLogger"
 )
 
 type OCFLVersion string
@@ -113,6 +114,7 @@ func LoadStorageRoot(ctx context.Context, fsys fs.FS, extensionFactory *Extensio
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot create sub filesystem 'extensions'")
 	}
+	// Error here, nil supplied to function but expects validation interface...
 	extensionManager, err := extensionFactory.CreateExtensions(extFSys, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "cannot create extension manager")
