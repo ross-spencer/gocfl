@@ -1,12 +1,4 @@
-[log]
-# "trace"
-# "debug"
-# "info"
-# "warn"
-# "error"
-# "fatal"
-# "panic"
-level = "info"
+# RS: CONFIG FOR TESTING...
 
 # global config for all operations on S3 storages
 [S3]
@@ -19,6 +11,31 @@ level = "info"
 # --s3-region
 #Region="%%GOCFL_S3_REGION%%"
 
+[log]
+# "trace"
+# "debug"
+# "info"
+# "warn"
+# "error"
+# "fatal"
+# "panic"
+level = "info"
+
+[log.stash]
+#logstash_host="sb-uwf4.swissbib.unibas.ch"
+#logstashhost="localhost"
+#logstashport=5046
+#logstashtracelevel="ERROR"
+#namespace="gocfl"
+#dataset=""
+#dataset="logs-mediaserver"
+#[log.stash.tls]
+#type="file"
+#cert="certs/ub-log.ub.unibas.ch.cert.pem"
+#key="certs/ub-log.ub.unibas.ch.key.pem"
+#ca=["certs/ca.crt"]
+#interval="1h"
+
 [AES]
 Enable=false
 KeepassFile="c:/temp/test.kdbx"
@@ -29,7 +46,7 @@ KeepassKey="%%GOCFL_KEEPASS_KEY%%"
 # --ocfl-version
 OCFLVersion="1.1"
 # --default-storageroot-extensions
-#StorageRootExtensions="./data/defaultextensions/storageroot"
+StorageRootExtensions="../data/defaultextensions/storageroot"
 # --digest
 Digest="sha512"
 
@@ -41,15 +58,15 @@ Digest="sha512"
 # --fixity
 Fixity=["sha256", "sha1", "md5"]
 # --default-object-extensions
-#ObjectExtensions="./data/fullextensions/object"
+ObjectExtensions="../data/fullextensions/object"
 
 DefaultArea="content"
 
 [Add.User]
 # --user-name
-Name="unknown user"
+Name="User OCFL"
 # --user-address
-Address="https://github.com/ocfl-archive/gocfl"
+Address="mailto:ocfl.user@unibas.ch"
 
 #
 # Extension parameter
@@ -64,6 +81,7 @@ descriptive-metadata="other:metadata:info.json"
 #
 # Indexer
 #
+
 [Indexer]
 Enabled=true
 # Enable this, if there are problem detecting length of audio files with ffmpeg
@@ -71,7 +89,8 @@ LocalCache=false
 
 [Indexer.Checksum]
 Enabled=true
-Digest=["sha512"]
+Digest=["sha512", "blake2b-384"]
+
 
 [Indexer.XML]
 Enabled=true
@@ -80,18 +99,22 @@ Attributes.xmlns = "http://www.abbyy.com/FineReader_xml/FineReader10-schema-v1.x
 Type = "ocr"
 Subtype = "FineReader10"
 Mime = "application/xml"
+
+
+
 [Indexer.XML.Format."mets:mets"]
-Regexp = true
+Regexp = false
 Attributes."xmlns:mets" = "^https?://www.loc.gov/METS/?$"
 Type = "metadata"
 Subtype = "METS"
 Mime = "application/xml"
 
+
 [Indexer.Siegfried]
 Enabled=true
 #Signature = "/usr/share/siegfried/default.sig"
 #Signature = "file://C:/Users/micro/siegfried/default.sig"
-Signature = "internal:/siegfried/default.sig"
+Signature = "/home/ross-spencer/.local/share/siegfried/default.sig"
 
 # mapping of pronom id to mimetype if not found in siegfried
 [Indexer.Siegfried.MimeMap]
@@ -145,7 +168,7 @@ Regexp = "^text/.+"
 Weight = 4
 [Indexer.MimeRelevance.9]
 Regexp = "^audio/.+"
-Weight = 5
+Weight = 5 
 [Indexer.MimeRelevance.10]
 Regexp = "^video/.+"
 Weight = 4
@@ -153,6 +176,50 @@ Weight = 4
 Regexp = "^.+/x-.+"
 Weight = 80
 
+[Indexer.FFMPEG]
+Enabled=true
+ffprobe = "ffprobe"
+wsl = false  # true, if executable is within linux subsystem on windows
+timeout = "25s"
+online = true
+enabled = true
+[[Indexer.FFMPEG.Mime]]
+video = false
+audio = true
+format = "mov,mp4,m4a,3gp,3g2,mj2"
+mime = "audio/mp4"
+[[Indexer.FFMPEG.Mime]]
+video = true
+audio = true
+format = "mov,mp4,m4a,3gp,3g2,mj2"
+mime = "video/mp4"
+[[Indexer.FFMPEG.Mime]]
+video = true
+audio = false
+format = "mov,mp4,m4a,3gp,3g2,mj2"
+mime = "video/mp4"
+
+[Indexer.ImageMagick]
+Enabled=true
+identify = "identify"
+convert = "convert"
+wsl = false  # true, if executable is within linux subsystem on windows
+timeout = "480s"
+online = true
+enabled = true
+
+[Indexer.Tika]
+Enabled=true
+addressMeta = "http://localhost:9998/meta"
+addressFulltext = "http://localhost:9998/tika"
+#address = "http://localhost:9998/rmeta/text"
+timeout = "10s"
+regexpMimeFulltext = "^application/(pdf|vnd\\.oasis.opendocument.+|vnd\\.openxmlformats.+|vnd\\.ms-.+)" # "^.*$" # ""^application/.*$"  # regexp for mimetype, which are used for tika queries
+regexpMimeFulltextNot = "" # "^.*$" # ""^application/.*$"
+regexpMimeMeta = ""
+regexpMimeMetaNot = "^(image|video|audio)/.*$"
+online = true
+enabled = true
 
 #
 # Thumbnail
@@ -161,9 +228,73 @@ Weight = 80
 Enable=true
 Background="none"
 
+[Thumbnail.Function.CR2]
+ID = "CR2#01"
+Title = "Thumbnail from Canon CR2"
+Command = "convert 'CR2:{source}' -resize {width}x{height} -auto-orient -background {background} -gravity Center -extent {width}x{height} '{destination}' "
+Timeout = "2m"
+Pronoms = ["fmt/592"]
+
+[Thumbnail.Function.Images]
+ID = "Image#01"
+Title = "Thumbnail from Image"
+Command = "convert '{source}' -resize {width}x{height} -auto-orient -background {background} -gravity Center -extent {width}x{height} '{destination}' "
+Timeout = "2m"
+Mime = ["image/.+"]
+
+[Thumbnail.Function.Audio]
+ID = "Audio#01"
+Title = "Spectrogram from Audio"
+Command = "ffmpeg -i {source} -lavfi showspectrumpic=s={width}x{height} {destination} "
+Timeout = "2m"
+Mime = ["audio/.+"]
+
+#[Thumbnail.Function.PDF]
+#ID = "PDF#01"
+#Title = "Thumbnail from Image"
+#Command = "powershell.exe -File C:/daten/go/dev/gocfl/data/scripts/pdf2thumb.ps1 -Source {source} -Destination {destination} -Background {background} -Width {width} -Height {height}"
+#Timeout = "2m"
+#Mime = ["application/pdf"]
+
+#[Thumbnail.Function.Video]
+#ID = "Video#01"
+#Title = "Thumbnail from Video"
+#Command = "powershell.exe -File C:/daten/go/dev/gocfl/data/scripts/video2thumb.ps1 -Source {source} -Destination {destination} -Background {background} -Width {width} -Height {height}"
+#Timeout = "2m"
+#Mime = ["video/.+"]
+
 #
 # Migration
 #
 [Migration]
 # --with-migration
-Enable=false
+Enable=true
+
+[Migration.Function.CR2]
+ID = "CR2#01"
+Title = "Convert Canon CR2 to PNG"
+Command = "convert 'CR2:{source}' '{destination}' "
+Strategy = "folder"
+FilenameRegexp = "^(.+/)?([^/]+)$"
+FilenameReplacement = "${2}.png"
+Timeout = "2m"
+Pronoms = ["fmt/592"]
+
+[Migration.Function.Image]
+ID = "Image#01"
+Title = "Convert Image to PNG"
+Command = "convert '{source}' '{destination}' "
+Strategy = "folder"
+FilenameRegexp = "^(.+/)?([^/]+)$"
+FilenameReplacement = "${2}.png"
+Timeout = "2m"
+Pronoms = ["fmt/202","fmt/436","fmt/437","x-fmt/367","fmt/528","fmt/662", "fmt/1101"]
+
+[Migration.Function.PDFA]
+ID = "PDFA#01"
+Title = "Convert Acrobat PDF to PDF/A - Portable Document Format 2a"
+Command = "gs -dBATCH -dNOPAUSE -dNOSAFER -sDEVICE=pdfwrite -dPDFA=2 -sColorConversionStrategy=RGB -dPDFACompatibilityPolicy=1 --permit-file-read='/tmp' -sOutputFile='{destination}' c:/daten/go/dev/gocfl/data/migration/pdfa_def.ps '{source}'"
+Strategy = "folder"
+FilenameRegexp = "^(.+/)?([^/]+)$"
+FilenameReplacement = "${2}"
+Timeout = "2m"

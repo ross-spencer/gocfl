@@ -2,6 +2,10 @@ module github.com/ocfl-archive/gocfl/v2
 
 go 1.23.3
 
+replace github.com/je4/indexer/v3 => ../indexer
+replace github.com/ocfl-archive/error => ../error
+replace github.com/je4/utils/v2 => ../utils
+
 require (
 	emperror.dev/emperror v0.33.0
 	emperror.dev/errors v0.8.1

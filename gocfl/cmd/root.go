@@ -8,7 +8,7 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/config"
 	"github.com/ocfl-archive/gocfl/v2/internal"
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
-	"github.com/ocfl-archive/gocfl/v2/version"
+	//"github.com/ocfl-archive/gocfl/v2/version"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/cobra"
 	"os"
@@ -106,7 +106,7 @@ var rootCmd = &cobra.Command{
 	Long: fmt.Sprintf(`A fast and reliable OCFL creator, extractor and validator.
 https://github.com/ocfl-archive/gocfl
 Jürgen Enge (University Library Basel, juergen@info-age.net)
-Version %s`, version.VERSION),
+Version %s`, "1233"),
 	Run: func(cmd *cobra.Command, args []string) {
 		_ = cmd.Help()
 	},
