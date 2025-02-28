@@ -1,8 +1,15 @@
 package extension
 
 import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"io"
 	"io/fs"
-	"regexp"
+	"log"
+	"strings"
+
+	"emperror.dev/errors"
 
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
 )
@@ -48,78 +55,132 @@ func GetROCrateFileParams() []*ocfl.ExtensionExternalParam {
 
 // NewROCrateFileFS ...
 func NewROCrateFileFS(fsys fs.FS) (*ROCrateFile, error) {
-	// not implemented.
-	return &ROCrateFile{}, nil
+	data, err := fs.ReadFile(fsys, "config.json")
+	if err != nil {
+		return nil, errors.Wrap(err, "cannot read config.json")
+	}
+	var config = &ROCrateFileConfig{
+		ExtensionConfig: &ocfl.ExtensionConfig{ExtensionName: ROCrateFileName},
+		StorageType:     "extension",
+		StorageName:     "metadata",
+		MetadataFile:    []string{"ro-crate-metadata.json", "ro-crate-metadata.jsonld"},
+		SupportedSchema: []string{"https://w3id.org/ro/crate/1.1/context"},
+		Documentation:   []string{"ro-crate-preview.html"},
+	}
+	if err := json.Unmarshal(data, config); err != nil {
+		return nil, errors.Wrapf(err, "cannot unmarshal DirectCleanConfig '%s'", string(data))
+	}
+	rcFile, err := NewROCrateFile(config)
+	return rcFile, err
 }
 
 // NewROCrateFile provides a helper to create a new object that helps us
 // to understand the internals of the extension
 func NewROCrateFile(config *ROCrateFileConfig) (*ROCrateFile, error) {
-	// not implemented.
-	return &ROCrateFile{}, nil
+	rcFile := &ROCrateFile{
+		ROCrateFileConfig: config,
+		info:              map[string][]byte{},
+	}
+	// check internal extension name is correct..
+	if config.ExtensionName != rcFile.GetName() {
+		return nil, errors.New(
+			fmt.Sprintf(
+				"invalid extension name'%s'for extension %s",
+				config.ExtensionName,
+				rcFile.GetName(),
+			),
+		)
+	}
+	return rcFile, nil
 }
 
 // Terminate ...
-func (sl *ROCrateFile) Terminate() error {
+func (rcFile *ROCrateFile) Terminate() error {
 	// not implemented.
 	return nil
 }
 
 // GetFS ...
-func (sl *ROCrateFile) GetFS() fs.FS {
-	return sl.fsys
+func (rcFile *ROCrateFile) GetFS() fs.FS {
+	return rcFile.fsys
 }
 
-func (sl *ROCrateFile) GetConfig() any {
-	return sl.ROCrateFileConfig
+func (rcFile *ROCrateFile) GetConfig() any {
+	return rcFile.ROCrateFileConfig
 }
 
 // IsRegistered describes whether this is an official GOCL extension.
-func (sl *ROCrateFile) IsRegistered() bool {
+func (rcFile *ROCrateFile) IsRegistered() bool {
 	return registered
 }
 
 // SetParams allows us to set parameters provided to the extension via
 // the config, e.g. CLI (or TOML?)
-func (sl *ROCrateFile) SetParams(params map[string]string) error {
+func (rcFile *ROCrateFile) SetParams(params map[string]string) error {
 	// not implemented.
 	return nil
 }
 
 // SetFS ...
-func (sl *ROCrateFile) SetFS(fsys fs.FS, create bool) {
-	sl.fsys = fsys
+func (rcFile *ROCrateFile) SetFS(fsys fs.FS, create bool) {
+	rcFile.fsys = fsys
 }
 
 // GetName returns the name of this extension to the caller.
-func (sl *ROCrateFile) GetName() string {
+func (rcFile *ROCrateFile) GetName() string {
 	return ROCrateFileName
 }
 
-func (sl *ROCrateFile) WriteConfig() error {
+func (rcFile *ROCrateFile) WriteConfig() error {
 	// not implemented.
 	return nil
 }
 
 // UpdateObjectBefore (before a new version of an OCFL object is
 // created...) TODO...
-func (sl *ROCrateFile) UpdateObjectBefore(object ocfl.Object) error {
+func (rcFile *ROCrateFile) UpdateObjectBefore(object ocfl.Object) error {
 	// not implemented.
 	return nil
 }
 
-var xxwindowsPathWithDrive = regexp.MustCompile("^/[a-zA-Z]:")
-
 // UpdateObjectAfter (after all content to the new version is written)
 // TODO...
-func (sl *ROCrateFile) UpdateObjectAfter(object ocfl.Object) error {
-	// not implemented.
+func (rcFile *ROCrateFile) UpdateObjectAfter(object ocfl.Object) error {
+
+	// TODO: this needs to be moved to where we read the ro-crate meta.
+	//
+	switch strings.ToLower(rcFile.StorageType) {
+	case "area":
+		// case area.
+	case "path":
+		// case path.
+	case "extension":
+		log.Println("ROCRATE: extension...")
+		f := "mapping.txt" // TODO: make const, no magic.
+		log.Println(f)
+		data := []byte("some data about rocrate...")
+		if _, err := object.AddReader(
+			io.NopCloser(
+				bytes.NewBuffer(data),
+			),
+			[]string{f},
+			rcFile.StorageName,
+			true,
+			false,
+		); err != nil {
+			log.Println("there was an error")
+			return err
+		}
+	default:
+		return errors.Errorf("unsupported storage type '%s'", rcFile.StorageType)
+	}
 	return nil
+
 }
 
 // GetMetadata (is called by any tool, which wants to report about
 // content) TODO...
-func (sl *ROCrateFile) GetMetadata(object ocfl.Object) (map[string]any, error) {
+func (rcFile *ROCrateFile) GetMetadata(object ocfl.Object) (map[string]any, error) {
 	// not implemented.
 	return nil, nil
 }
