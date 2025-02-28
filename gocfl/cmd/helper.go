@@ -2,8 +2,12 @@ package cmd
 
 import (
 	"context"
-	"emperror.dev/errors"
 	"fmt"
+	"io/fs"
+	"path/filepath"
+	"time"
+
+	"emperror.dev/errors"
 	"github.com/google/tink/go/core/registry"
 	"github.com/je4/filesystem/v3/pkg/osfsrw"
 	"github.com/je4/filesystem/v3/pkg/s3fsrw"
@@ -22,9 +26,6 @@ import (
 	"github.com/ocfl-archive/gocfl/v2/pkg/subsystem/migration"
 	"github.com/ocfl-archive/gocfl/v2/pkg/subsystem/thumbnail"
 	"github.com/spf13/cobra"
-	"io/fs"
-	"path/filepath"
-	"time"
 )
 
 func startTimer() *timer {
@@ -124,6 +125,11 @@ func InitExtensionFactory(extensionParams map[string]string, indexerAddr string,
 		return extension.NewMetaFileFS(fsys)
 	})
 
+	logger.Debug().Msgf("adding creator for extension %s", extension.ROCrateFileName)
+	extensionFactory.AddCreator(extension.ROCrateFileName, func(fsys fs.FS) (ocfl.Extension, error) {
+		return extension.NewROCrateFileFS(fsys)
+	})
+
 	logger.Debug().Msgf("adding creator for extension %s", extension.IndexerName)
 	extensionFactory.AddCreator(extension.IndexerName, func(fsys fs.FS) (ocfl.Extension, error) {
 		ext, err := extension.NewIndexerFS(fsys, indexerAddr, indexerActions, indexerLocalCache, logger)
@@ -162,6 +168,7 @@ func GetExtensionParams() []*ocfl.ExtensionExternalParam {
 	result = append(result, extension.GetIndexerParams()...)
 	result = append(result, extension.GetMetaFileParams()...)
 	result = append(result, extension.GetMetsParams()...)
+	result = append(result, extension.GetROCrateFileParams()...)
 	result = append(result, extension.GetContentSubPathParams()...)
 
 	return result
