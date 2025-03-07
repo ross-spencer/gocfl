@@ -18,6 +18,9 @@ and integrates the ro-crate metadata into metadata-export and -viewer.
 To allow the use of ro-crate for various purposes, the ro-crate metadata extension
 makes sure, that ro-crate-metadata.json is available and can be used for further processing.
 
+TODO: The existence of ro-crate-metadata.json overrides the existence of an existing
+info.json path.
+
 ## Parameters
 
 ### Summary

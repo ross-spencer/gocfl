@@ -7,11 +7,11 @@ import (
 	"io"
 	"io/fs"
 	"log"
-	"strings"
 
 	"emperror.dev/errors"
 
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
+	"github.com/ocfl-archive/gocfl/v2/pkg/rocrate"
 )
 
 // ROCrateFileName ...
@@ -49,8 +49,15 @@ type ROCrateFile struct {
 
 // GetROCrateFileParams ...
 func GetROCrateFileParams() []*ocfl.ExtensionExternalParam {
-	// not implemented.
-	return []*ocfl.ExtensionExternalParam{}
+	return []*ocfl.ExtensionExternalParam{
+		{
+			ExtensionName: ROCrateFileName,
+			Functions:     []string{"add", "update", "create"},
+			Param:         "enabled",
+			Description:   "replace metafile extension functionality if enabled and map RO-CRATE metadata",
+			Default:       "false",
+		},
+	}
 }
 
 // NewROCrateFileFS ...
@@ -146,34 +153,7 @@ func (rcFile *ROCrateFile) UpdateObjectBefore(object ocfl.Object) error {
 // UpdateObjectAfter (after all content to the new version is written)
 // TODO...
 func (rcFile *ROCrateFile) UpdateObjectAfter(object ocfl.Object) error {
-
-	// TODO: this needs to be moved to where we read the ro-crate meta.
-	//
-	switch strings.ToLower(rcFile.StorageType) {
-	case "area":
-		// case area.
-	case "path":
-		// case path.
-	case "extension":
-		log.Println("ROCRATE: extension...")
-		f := "mapping.txt" // TODO: make const, no magic.
-		log.Println(f)
-		data := []byte("some data about rocrate...")
-		if _, err := object.AddReader(
-			io.NopCloser(
-				bytes.NewBuffer(data),
-			),
-			[]string{f},
-			rcFile.StorageName,
-			true,
-			false,
-		); err != nil {
-			log.Println("there was an error")
-			return err
-		}
-	default:
-		return errors.Errorf("unsupported storage type '%s'", rcFile.StorageType)
-	}
+	// not implemented.
 	return nil
 
 }
@@ -183,6 +163,71 @@ func (rcFile *ROCrateFile) UpdateObjectAfter(object ocfl.Object) error {
 func (rcFile *ROCrateFile) GetMetadata(object ocfl.Object) (map[string]any, error) {
 	// not implemented.
 	return nil, nil
+}
+
+// findROCrateMeta looks for the RO-CRATE metadata file within the
+// objects spplied to the function.
+func (rcFile *ROCrateFile) findROCrateMeta(stateFiles []string) bool {
+	f := stateFiles[0]
+	if f != "data/ro-crate-metadata.json" {
+		return false
+	}
+	return true
+}
+
+// copyStream allows StreamObject to make a copy of a reader so that it
+// can be given back safely to the caller and other stream functions
+// can be performed on the object.
+func copyStream(reader io.Reader) (io.Reader, error) {
+	buf := &bytes.Buffer{}
+	_, err := io.Copy(buf, reader)
+	if err != nil {
+		return nil, err
+	}
+	return buf, nil
+}
+
+// writeMetafile ...
+func (rcFile *ROCrateFile) writeMetafile(object ocfl.Object, rcMeta string) error {
+	log.Println("ROCRATE: extension...")
+	mappingFile := "mapping.txt2" // TODO: make const, no magic.
+	log.Println(mappingFile)
+	data := []byte(rcMeta)
+	if _, err := object.AddReader(
+		io.NopCloser(
+			bytes.NewBuffer(data),
+		),
+		[]string{mappingFile},
+		rcFile.StorageName,
+		true,
+		false,
+	); err != nil {
+		log.Println("there was an error")
+		return err
+	}
+	return nil
+}
+
+func (rcFile *ROCrateFile) StreamObject(
+	object ocfl.Object,
+	reader io.Reader,
+	stateFiles []string,
+	dest string,
+) error {
+	// TODO: check idiom, this might need to use the object data.
+	if !rcFile.findROCrateMeta(stateFiles) {
+		return nil
+	}
+	// copy file so that it can then be sent to another interface to
+	// be read. In this case a ro-crate-metadata json reader.
+	metaCopy, err := copyStream(reader)
+	if err != nil {
+		return err
+	}
+	rocrate.ProcessMetadataStream(metaCopy)
+	rcMeta := "this is some data..."
+	rcFile.writeMetafile(object, rcMeta)
+	return nil
 }
 
 // check interface satisfaction

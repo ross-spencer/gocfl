@@ -47,7 +47,17 @@ func (t *timer) String() string {
 	return delta.String()
 }
 
-func InitExtensionFactory(extensionParams map[string]string, indexerAddr string, indexerLocalCache bool, indexerActions *ironmaiden.ActionDispatcher, migration *migration.Migration, thumbnail *thumbnail.Thumbnail, sourceFS fs.FS, logger zLogger.ZLogger) (*ocfl.ExtensionFactory, error) {
+func InitExtensionFactory(
+	extensionParams map[string]string,
+	indexerAddr string,
+	indexerLocalCache bool,
+	indexerActions *ironmaiden.ActionDispatcher,
+	migration *migration.Migration,
+	thumbnail *thumbnail.Thumbnail,
+	sourceFS fs.FS,
+	logger zLogger.ZLogger,
+) (*ocfl.ExtensionFactory, error) {
+
 	logger.Debug().Msgf("initializing ExtensionFactory")
 	extensionFactory, err := ocfl.NewExtensionFactory(extensionParams, logger)
 	if err != nil {
@@ -164,13 +174,11 @@ func InitExtensionFactory(extensionParams map[string]string, indexerAddr string,
 
 func GetExtensionParams() []*ocfl.ExtensionExternalParam {
 	var result = []*ocfl.ExtensionExternalParam{}
-
 	result = append(result, extension.GetIndexerParams()...)
 	result = append(result, extension.GetMetaFileParams()...)
 	result = append(result, extension.GetMetsParams()...)
 	result = append(result, extension.GetROCrateFileParams()...)
 	result = append(result, extension.GetContentSubPathParams()...)
-
 	return result
 }
 
