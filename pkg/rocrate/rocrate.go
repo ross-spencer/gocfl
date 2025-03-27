@@ -8,7 +8,12 @@ import (
 	"fmt"
 	"io"
 	"slices"
+	"strings"
 )
+
+var versions []string = []string{
+	"https://w3id.org/ro/crate/1.1/context",
+}
 
 type rocrateMeta struct {
 	LDContext any     `json:"@context"`
@@ -16,30 +21,30 @@ type rocrateMeta struct {
 }
 
 type graph struct {
-	ID               string            `json:"@id"`
-	Type             *SliceOrString    `json:"@type,omitempty"`
-	About            *SliceOrPrimitive `json:"about,omitempty"`
-	Affiliation      *primitive        `json:"affiliation,omitempty"`
-	Author           json.RawMessage   `json:"author,omitempty"`
-	Conforms         *primitive        `json:"conformsTo,omitempty"`
-	ContentLocation  *primitive        `json:"contentLocation,omitempty"`
-	ContentURL       string            `json:"contentUrl,omitempty"`
-	Date             string            `json:"datePublished,omitempty"`
-	Description      string            `json:"description,omitempty"`
-	EncodingFormat   string            `json:"enncodingFormat,omitempty"`
-	FamilyName       string            `json:"familyName,omitempty"`
-	Funderr          *primitive        `json:"funder,omitempty"`
-	GivenName        string            `json:"givenName,omitempty"`
-	HasPart          *SliceOrPrimitive `json:"hasPart,omitempty"`
-	Identifier       string            `json:"identifier,omitempty"`
-	Keywords         *SliceOrString    `json:"keywords,omitempty"`
-	License          *primitive        `json:"license,omitempty"`
-	Latitude         string            `json:"latitude,omitempty"`
-	Longitude        string            `json:"longitude,omitempty"`
-	Name             *SliceOrPrimitive `json:"name,omitempty"`
-	Publisher        *primitive        `json:"publisher,omitempty"`
-	TemporalCoverage string            `json:"temporalCoverage,omitempty"`
-	URL              string            `json:"url,omitempty"`
+	ID               string                 `json:"@id"`
+	Type             *StringOrSlice         `json:"@type,omitempty"`
+	About            *NodeIdentifierOrSlice `json:"about,omitempty"`
+	Affiliation      *NodeIdentifierOrSlice `json:"affiliation,omitempty"`
+	Author           *NodeIdentifierOrSlice `json:"author,omitempty"`
+	Conforms         *NodeIdentifierOrSlice `json:"conformsTo,omitempty"`
+	ContentLocation  *NodeIdentifierOrSlice `json:"contentLocation,omitempty"`
+	ContentURL       string                 `json:"contentUrl,omitempty"`
+	Date             string                 `json:"datePublished,omitempty"`
+	Description      string                 `json:"description,omitempty"`
+	EncodingFormat   string                 `json:"enncodingFormat,omitempty"`
+	FamilyName       string                 `json:"familyName,omitempty"`
+	Funder           *NodeIdentifierOrSlice `json:"funder,omitempty"`
+	GivenName        string                 `json:"givenName,omitempty"`
+	HasPart          *NodeIdentifierOrSlice `json:"hasPart,omitempty"`
+	Identifier       string                 `json:"identifier,omitempty"`
+	Keywords         *StringOrSlice         `json:"keywords,omitempty"`
+	License          *NodeIdentifierOrSlice `json:"license,omitempty"`
+	Latitude         string                 `json:"latitude,omitempty"`
+	Longitude        string                 `json:"longitude,omitempty"`
+	Name             *StringOrSlice         `json:"name,omitempty"`
+	Publisher        *NodeIdentifierOrSlice `json:"publisher,omitempty"`
+	TemporalCoverage string                 `json:"temporalCoverage,omitempty"`
+	URL              string                 `json:"url,omitempty"`
 }
 
 type rocrateContext struct {
@@ -73,7 +78,7 @@ func (rcMeta *rocrateMeta) Context() string {
 	}
 	rcContext, ok := rcMeta.LDContext.([]interface{})
 	if !ok {
-		panic("TODO: cannot cast")
+		return fmt.Sprintf("cannot determine @context from json-ld input")
 	}
 	context := (rcContext[0].(string))
 	// vocab
@@ -81,64 +86,116 @@ func (rcMeta *rocrateMeta) Context() string {
 	return context
 }
 
-// SliceOrString: https://gitlab.com/flimzy/talks/-/blob/master/2020/go-json/string-or-array.go
-
-// SliceOrPrimitive ... TODO: type naming.
-type SliceOrPrimitive []primitive
-
-func (s *SliceOrPrimitive) UnmarshalJSON(d []byte) error {
-	if d[0] == '"' {
-		var v primitive
-		err := json.Unmarshal(d, &v)
-		*s = SliceOrPrimitive{v}
-		return err
+func (rcMeta rocrateMeta) String() string {
+	if len(rcMeta.Graph) == 0 {
+		return fmt.Sprintf("ro-crate-metadata.json is empty")
 	}
-	var v []primitive
-	err := json.Unmarshal(d, &v)
-	*s = SliceOrPrimitive(v)
-	return err
+	if len(rcMeta.Graph) == 1 {
+		return fmt.Sprintf("ro-crate-metadata.json is non-conformant")
+	}
+	out := fmt.Sprintf(`
+Type: %s
+ID: %s
+Identifier: %s
+Published: %s
+Name: %s`,
+		rcMeta.Graph[0].Type,
+		rcMeta.Graph[0].ID,
+		rcMeta.Graph[1].Identifier,
+		rcMeta.Graph[1].Date,
+		rcMeta.Graph[1].Name,
+	)
+	return strings.TrimSpace(out)
 }
 
-// SliceOrString ... TODO: type naming.
-type SliceOrString []string
+/* String-slice type and handler.
 
-func (s *SliceOrString) UnmarshalJSON(d []byte) error {
+For more info on the type handling below:
+
+StringOrSlice:
+   https://gitlab.com/flimzy/talks/-/blob/master/2020/go-json/string-or-array.go
+
+*/
+
+// StringOrSlice represents a type that can interpret both single-value
+// strings or slices of strings.
+type StringOrSlice []string
+
+// Implement Unmarshal for the StringOrSlice type.
+func (s *StringOrSlice) UnmarshalJSON(d []byte) error {
 	if d[0] == '"' {
 		var v string
 		err := json.Unmarshal(d, &v)
-		*s = SliceOrString{v}
+		*s = StringOrSlice{v}
 		return err
 	}
 	var v []string
 	err := json.Unmarshal(d, &v)
-	*s = SliceOrString(v)
+	*s = StringOrSlice(v)
 	return err
 }
 
-type primitive struct {
+// Return the StringOrSlice value as something sensible.
+func (s StringOrSlice) Value() []string {
+	return s
+}
+
+// String provides a stringer method for this type. It might not
+// be needed eventually.
+func (s StringOrSlice) String() string {
+	var out string = "["
+	for _, v := range s {
+		out = fmt.Sprintf("%s%s; ", out, v)
+	}
+	out = fmt.Sprintf("%s]", strings.TrimSpace(out))
+	return out
+}
+
+// Node-identifier handlers. These seem to only contain relative
+// links in the RO-CRATE specification.
+
+// nodePrimitive look like they only contain links. relative, or
+// absolute, in RO-CRATE metadata. They can be single-value objects
+// or slices of objects.
+type nodeIdentifier struct {
 	ID string `json:"@id"`
 }
 
-var versions []string = []string{
-	"https://w3id.org/ro/crate/1.1/context",
+type NodeIdentifierOrSlice []nodeIdentifier
+
+func (s *NodeIdentifierOrSlice) UnmarshalJSON(d []byte) error {
+	//fmt.Println(d[0], '{', '[', string(d))
+	if d[0] == '{' {
+		var v nodeIdentifier
+		err := json.Unmarshal(d, &v)
+		*s = NodeIdentifierOrSlice{v}
+		return err
+	}
+	//fmt.Println(d[0], '"', '{', '[')
+	var v []nodeIdentifier
+	err := json.Unmarshal(d, &v)
+	*s = NodeIdentifierOrSlice(v)
+	return err
+}
+
+func (s NodeIdentifierOrSlice) Value() []nodeIdentifier {
+	return s
 }
 
 // ProcessMetadataStream enables processing of ro-crate-metadata.json
 // and return in the simple structs made available in this package.
-func ProcessMetadataStream(meta io.Reader) error {
+func ProcessMetadataStream(meta io.Reader) (rocrateMeta, error) {
 	buf := new(bytes.Buffer)
 	_, err := io.Copy(buf, meta)
 	if err != nil {
-		return err
+		return rocrateMeta{}, err
 	}
 	res := rocrateMeta{}
 	json.Unmarshal(buf.Bytes(), &res)
-	j, _ := json.MarshalIndent(res, "", "   ")
+	//j, _ := json.MarshalIndent(res, "", "   ")
 	if !slices.Contains(versions, res.Context()) {
-		return fmt.Errorf("cannot provess this version")
+		return rocrateMeta{}, fmt.Errorf("cannot provess this version")
 	}
-	fmt.Println("we can parse:", string(j))
-
-	// TODO: return data...
-	return nil
+	//fmt.Println(j)
+	return res, nil
 }

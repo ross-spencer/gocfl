@@ -1,5 +1,16 @@
 package rocrate
 
+// simplecontext contains bare minimum context.
+var simpleContext []byte = []byte(`
+{
+  "@context": "https://w3id.org/ro/crate/1.1/context",
+  "@graph": [
+  ]
+}
+`)
+
+// complexcontext provides further information about the schema and
+// vocabulary.
 var complexContext []byte = []byte(`
 {
   "@context": [
@@ -13,14 +24,122 @@ var complexContext []byte = []byte(`
 }
 `)
 
-var simpleContext []byte = []byte(`
+// Variants of different values that can be single values or slices.
+//
+// nameTest provides a way of testing a single value name or a slice
+// of names.
+var nameTest []byte = []byte(`
 {
-  "@context": "https://w3id.org/ro/crate/1.1/context",
-  "@graph": [
-  ]
+    "@context": [
+        "https://w3id.org/ro/crate/1.1/context",
+        {
+            "@vocab": "http://schema.org/"
+        }
+    ],
+    "@graph": [
+        {
+            "@id": "test1",
+            "name": [
+                "name one",
+                "name two"
+            ]
+        },
+        {
+            "@id": "test2",
+            "name": "name one"
+        }
+    ]
 }
 `)
 
+// authorTest provides a way to test a single-value author, or a slice
+// of author values.
+var authorTest []byte = []byte(`
+{
+    "@context": [
+        "https://w3id.org/ro/crate/1.1/context",
+        {
+            "@vocab": "http://schema.org/"
+        }
+    ],
+    "@graph": [
+        {
+            "@id": "test1",
+            "author": [
+                {
+                    "@id": "https://orcid.org/1234-0003-1974-0000"
+                },
+                {
+                    "@id": "#Yann"
+                },
+                {
+                    "@id": "#Organization-SMUC"
+                }
+            ]
+        },
+		{
+            "@id": "test2",
+            "author": {
+				"@id": "https://orcid.org/0000-0003-1974-1234"
+            }
+        }
+    ]
+}
+`)
+
+// typeTest provides a way to test a single-value type or a slice of
+// values for the same key.
+var typeTest []byte = []byte(`
+{
+    "@context": [
+        "https://w3id.org/ro/crate/1.1/context",
+        {
+            "@vocab": "http://schema.org/"
+        }
+    ],
+    "@graph": [
+        {
+            "@id": "test1",
+            "@type": [
+                "Person",
+                "Artist"
+            ]
+        },
+        {
+            "@id": "test2",
+            "@type": "Person"
+        }
+    ]
+}
+`)
+
+// keywordTest provides a way to test a single-value keyword or a
+// slice of keywords.
+var keywordTest []byte = []byte(`
+{
+    "@context": [
+        "https://w3id.org/ro/crate/1.1/context",
+        {
+            "@vocab": "http://schema.org/"
+        }
+    ],
+    "@graph": [
+        {
+            "@id": "test1",
+            "keywords": [
+                "kw1",
+                "kw2"
+            ]
+        },
+        {
+            "@id": "test2",
+            "keywords": "kw1"
+        }
+    ]
+}
+`)
+
+// afternoonDrinks is an example RO-CRATE meta created from Dataverse.
 var afternoonDrinks []byte = []byte(`
 {
   "@context": [
@@ -176,6 +295,8 @@ var afternoonDrinks []byte = []byte(`
 }
 `)
 
+// carprentriesCrate conforms to the example crate created as part of
+// the RO-CRATE carpentries tutorial.
 var carpentriesCrate []byte = []byte(`
 {
 	"@context": "https://w3id.org/ro/crate/1.1/context",
@@ -238,6 +359,8 @@ var carpentriesCrate []byte = []byte(`
   }
 `)
 
+// specCrate is an example of a ro-crate-metadata.json file found in
+// the wild.
 var specCrate []byte = []byte(`
   { "@context": "https://w3id.org/ro/crate/1.1/context",
   "@graph": [
@@ -259,8 +382,6 @@ var specCrate []byte = []byte(`
         {"@id": "data2.txt"}
       ]
     },
-
-
     {
       "@id": "data1.txt",
       "@type": "File",
@@ -288,6 +409,8 @@ var specCrate []byte = []byte(`
 }
 `)
 
+// galaxyCrate is an example of a ro-crate-metadata.json file found
+// in the wild.
 var galaxyCrate []byte = []byte(`
 {
     "@context": "https://w3id.org/ro/crate/1.1/context",
@@ -354,111 +477,6 @@ var galaxyCrate []byte = []byte(`
             "@type": "Organization",
             "name": "Example University",
             "url": "https://www.example.org"
-        }
-    ]
-}
-`)
-
-var nameTest []byte = []byte(`
-{
-    "@context": [
-        "https://w3id.org/ro/crate/1.1/context",
-        {
-            "@vocab": "http://schema.org/"
-        }
-    ],
-    "@graph": [
-        {
-            "@id": "test1",
-            "name": [
-                "name one",
-                "name two"
-            ]
-        },
-        {
-            "@id": "test2",
-            "name": "name one"
-        }
-    ]
-}
-`)
-
-var authorTest []byte = []byte(`
-{
-    "@context": [
-        "https://w3id.org/ro/crate/1.1/context",
-        {
-            "@vocab": "http://schema.org/"
-        }
-    ],
-    "@graph": [
-        {
-            "@id": "test1",
-            "author": [
-                {
-                    "@id": "https://orcid.org/0000-0003-1974-5320"
-                },
-                {
-                    "@id": "#Yann"
-                },
-                {
-                    "@id": "#Organization-SMUC"
-                }
-            ]
-        },
-		{
-            "@id": "test2",
-            "author": {
-				"@id": "https://orcid.org/0000-0003-1974-5320"
-            }
-        }
-    ]
-}
-`)
-
-var typeTest []byte = []byte(`
-{
-    "@context": [
-        "https://w3id.org/ro/crate/1.1/context",
-        {
-            "@vocab": "http://schema.org/"
-        }
-    ],
-    "@graph": [
-        {
-            "@id": "test1",
-            "@type": [
-                "Person",
-                "Artist"
-            ]
-        },
-        {
-            "@id": "test2",
-            "@type": "Person"
-        }
-    ]
-}
-`)
-
-var keywordTest []byte = []byte(`
-{
-    "@context": [
-        "https://w3id.org/ro/crate/1.1/context",
-        {
-            "@vocab": "http://schema.org/"
-        }
-    ],
-    "@graph": [
-        {
-            "@id": "test1",
-            "keywords": [
-                "kw1",
-                "kw2"
-            ]
-        },
-        {
-            "@id": "test2",
-            "keywords": "kw1"
         }
     ]
 }
