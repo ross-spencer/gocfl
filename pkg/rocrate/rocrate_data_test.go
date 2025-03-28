@@ -52,9 +52,9 @@ var nameTest []byte = []byte(`
 }
 `)
 
-// authorTest provides a way to test a single-value author, or a slice
-// of author values.
-var authorTest []byte = []byte(`
+// keywordTest provides a way to test a single-value keyword or a
+// slice of keywords.
+var keywordTest []byte = []byte(`
 {
     "@context": [
         "https://w3id.org/ro/crate/1.1/context",
@@ -65,23 +65,14 @@ var authorTest []byte = []byte(`
     "@graph": [
         {
             "@id": "test1",
-            "author": [
-                {
-                    "@id": "https://orcid.org/1234-0003-1974-0000"
-                },
-                {
-                    "@id": "#Yann"
-                },
-                {
-                    "@id": "#Organization-SMUC"
-                }
+            "keywords": [
+                "kw1",
+                "kw2"
             ]
         },
-		{
+        {
             "@id": "test2",
-            "author": {
-				"@id": "https://orcid.org/0000-0003-1974-1234"
-            }
+            "keywords": "kw1"
         }
     ]
 }
@@ -113,9 +104,9 @@ var typeTest []byte = []byte(`
 }
 `)
 
-// keywordTest provides a way to test a single-value keyword or a
-// slice of keywords.
-var keywordTest []byte = []byte(`
+// authorTest provides a way to test a single-value author, or a slice
+// of author values.
+var authorTest []byte = []byte(`
 {
     "@context": [
         "https://w3id.org/ro/crate/1.1/context",
@@ -126,14 +117,23 @@ var keywordTest []byte = []byte(`
     "@graph": [
         {
             "@id": "test1",
-            "keywords": [
-                "kw1",
-                "kw2"
+            "author": [
+                {
+                    "@id": "https://orcid.org/1234-0003-1974-0000"
+                },
+                {
+                    "@id": "#Yann"
+                },
+                {
+                    "@id": "#Organization-SMUC"
+                }
             ]
         },
-        {
+		{
             "@id": "test2",
-            "keywords": "kw1"
+            "author": {
+				"@id": "https://orcid.org/0000-0003-1974-1234"
+            }
         }
     ]
 }
@@ -477,6 +477,30 @@ var galaxyCrate []byte = []byte(`
             "@type": "Organization",
             "name": "Example University",
             "url": "https://www.example.org"
+        }
+    ]
+}
+`)
+
+// emptyCrate provides a way to test the lacn of information, e.g.
+// when providign summary information.
+var emptyCrate []byte = []byte(`
+{
+    "@context": "https://w3id.org/ro/crate/1.1/context",
+    "@graph": [
+        {
+            "@type": "CreativeWork",
+            "@id": "ro-crate-metadata.json",
+            "conformsTo": {
+                "@id": "https://w3id.org/ro/crate/1.1"
+            },
+            "about": {
+                "@id": "./"
+            }
+        },
+        {
+        },
+        {
         }
     ]
 }

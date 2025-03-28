@@ -1,5 +1,10 @@
 // Package rocrate enables simple processing of ro-crate data so that
 // it can be remapped in custome metadata.
+//
+// For additional reference for some of the structural information in
+// this module, including cardinality, please look at crate-o:
+//
+//   - https://language-research-technology.github.io/crate-o
 package rocrate
 
 import (
@@ -29,7 +34,7 @@ type graph struct {
 	Conforms         *NodeIdentifierOrSlice `json:"conformsTo,omitempty"`
 	ContentLocation  *NodeIdentifierOrSlice `json:"contentLocation,omitempty"`
 	ContentURL       string                 `json:"contentUrl,omitempty"`
-	Date             string                 `json:"datePublished,omitempty"`
+	DatePublished    string                 `json:"datePublished,omitempty"`
 	Description      string                 `json:"description,omitempty"`
 	EncodingFormat   string                 `json:"enncodingFormat,omitempty"`
 	FamilyName       string                 `json:"familyName,omitempty"`
@@ -86,6 +91,106 @@ func (rcMeta *rocrateMeta) Context() string {
 	return context
 }
 
+// rocrateSummary provides a summary structure we can access safefly
+// to reason about the data in a ro-crate.
+type rocrateSummary struct {
+
+	// graph[1]
+	ID string
+	// graph[1]
+	Name []string
+	// graph[1]
+	Type []string
+	// graph[1]
+	Description string
+	// graph[1]
+	DatePublished string
+	// graph[1]
+	Author []string
+	// graph[1]
+	License string
+	// graph[1]
+	HasPart []string
+	// graph[1]
+	ContentURL string
+	// graph[1]
+	Keywords []string
+	// graph[1]
+	Publisher []string
+	// graph[0]
+	// Referenced by refers to sections of the RO-CRATE that reference
+	// this summary.
+	About string
+}
+
+// newSummary creates a new ro-crate summary to provide safe access
+// from the caller.
+func newSummary() rocrateSummary {
+	return rocrateSummary{
+		"",
+		[]string{},
+		[]string{},
+		"",
+		"",
+		[]string{},
+		"",
+		[]string{},
+		"",
+		[]string{},
+		[]string{},
+		"",
+	}
+}
+
+func (rcMeta rocrateMeta) Summary() (rocrateSummary, error) {
+
+	if len(rcMeta.Graph) == 0 {
+		return rocrateSummary{}, fmt.Errorf("ro-crate-metadata.json is empty")
+	}
+	if len(rcMeta.Graph) == 1 {
+		return rocrateSummary{}, fmt.Errorf("ro-crate-metadata.json is non-conformant")
+	}
+	summary := newSummary()
+	summary.ID = rcMeta.Graph[1].ID
+	if rcMeta.Graph[1].Name != nil {
+		summary.Name = rcMeta.Graph[1].Name.Value()
+	}
+	if rcMeta.Graph[1].Type != nil {
+		summary.Type = rcMeta.Graph[1].Type.Value()
+	}
+	summary.Description = rcMeta.Graph[1].Description
+	summary.DatePublished = rcMeta.Graph[1].DatePublished
+	if rcMeta.Graph[1].Author != nil {
+		summary.Author = rcMeta.Graph[1].Author.StringSlice()
+	}
+	if rcMeta.Graph[1].License != nil {
+		license := rcMeta.Graph[1].License.StringSlice()
+		if len(license) != 0 {
+			summary.License = license[0]
+		}
+	}
+	if rcMeta.Graph[1].Author != nil {
+		summary.Author = rcMeta.Graph[1].Author.StringSlice()
+	}
+	if rcMeta.Graph[1].HasPart != nil {
+		summary.HasPart = rcMeta.Graph[1].HasPart.StringSlice()
+	}
+	summary.ContentURL = rcMeta.Graph[1].URL
+	if rcMeta.Graph[1].Keywords != nil {
+		summary.Keywords = rcMeta.Graph[1].Keywords.Value()
+	}
+	if rcMeta.Graph[1].Publisher != nil {
+		summary.Publisher = rcMeta.Graph[1].Publisher.StringSlice()
+	}
+	if rcMeta.Graph[0].About != nil {
+		about := rcMeta.Graph[0].About.StringSlice()
+		if len(about) != 0 {
+			summary.About = about[0]
+		}
+	}
+	return summary, nil
+}
+
 func (rcMeta rocrateMeta) String() string {
 	if len(rcMeta.Graph) == 0 {
 		return fmt.Sprintf("ro-crate-metadata.json is empty")
@@ -102,7 +207,7 @@ Name: %s`,
 		rcMeta.Graph[0].Type,
 		rcMeta.Graph[0].ID,
 		rcMeta.Graph[1].Identifier,
-		rcMeta.Graph[1].Date,
+		rcMeta.Graph[1].DatePublished,
 		rcMeta.Graph[1].Name,
 	)
 	return strings.TrimSpace(out)
@@ -180,6 +285,14 @@ func (s *NodeIdentifierOrSlice) UnmarshalJSON(d []byte) error {
 
 func (s NodeIdentifierOrSlice) Value() []nodeIdentifier {
 	return s
+}
+
+func (s NodeIdentifierOrSlice) StringSlice() []string {
+	var res []string
+	for _, v := range s {
+		res = append(res, v.ID)
+	}
+	return res
 }
 
 // ProcessMetadataStream enables processing of ro-crate-metadata.json
