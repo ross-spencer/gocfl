@@ -191,34 +191,6 @@ func TestNodeIdentifierVariants(t *testing.T) {
 	}
 }
 
-type metadataTest struct {
-	label    string
-	testData []byte
-}
-
-var metadataTests []metadataTest = []metadataTest{
-	metadataTest{
-		"empty",
-		emptyCrate,
-	},
-	metadataTest{
-		"afternoon drinks",
-		afternoonDrinks,
-	},
-	metadataTest{
-		"carpentries",
-		carpentriesCrate,
-	},
-	metadataTest{
-		"spec",
-		specCrate,
-	},
-	metadataTest{
-		"galaxy",
-		galaxyCrate,
-	},
-}
-
 // TestNewSummary ensures new summary is as safe as possible.
 func TestNewSummary(t *testing.T) {
 	summary := newSummary()
@@ -257,6 +229,36 @@ func TestNewGocflSummary(t *testing.T) {
 	}
 }
 
+type metadataTest struct {
+	label    string
+	testData []byte
+	// summary...
+	// gocfl summary...
+}
+
+var metadataTests []metadataTest = []metadataTest{
+	metadataTest{
+		"empty",
+		emptyCrate,
+	},
+	metadataTest{
+		"afternoon drinks",
+		afternoonDrinks,
+	},
+	metadataTest{
+		"carpentries",
+		carpentriesCrate,
+	},
+	metadataTest{
+		"spec",
+		specCrate,
+	},
+	metadataTest{
+		"galaxy",
+		galaxyCrate,
+	},
+}
+
 // TestMetadata provides more generic testing of the test data within
 // this package.
 func TestMetadata(t *testing.T) {
@@ -274,7 +276,7 @@ func TestGOCFLMetadata(t *testing.T) {
 	for _, test := range metadataTests {
 		variantTest := bytes.NewBuffer(test.testData)
 		res, _ := ProcessMetadataStream(variantTest)
-		fmt.Println(test.label
+		fmt.Println(test.label)
 		fmt.Println(res.GOCFLSummary())
 	}
 }
