@@ -169,9 +169,6 @@ func (rcMeta rocrateMeta) Summary() (rocrateSummary, error) {
 			summary.License = license[0]
 		}
 	}
-	if rcMeta.Graph[1].Author != nil {
-		summary.Author = rcMeta.Graph[1].Author.StringSlice()
-	}
 	if rcMeta.Graph[1].HasPart != nil {
 		summary.HasPart = rcMeta.Graph[1].HasPart.StringSlice()
 	}

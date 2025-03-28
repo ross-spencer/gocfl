@@ -219,17 +219,6 @@ var metadataTests []metadataTest = []metadataTest{
 	},
 }
 
-// TestMetadata provides more generic testing of the test data within
-// this package.
-func TestMetadata(t *testing.T) {
-	for _, test := range metadataTests {
-		variantTest := bytes.NewBuffer(test.testData)
-		res, _ := ProcessMetadataStream(variantTest)
-		fmt.Println(test.label)
-		fmt.Println(res.Summary())
-	}
-}
-
 // TestNewSummary ensures new summary is as safe as possible.
 func TestNewSummary(t *testing.T) {
 	summary := newSummary()
@@ -246,5 +235,46 @@ func TestNewSummary(t *testing.T) {
 		if !isSet {
 			t.Errorf("summary constructor isn't setting: %s", fieldName)
 		}
+	}
+}
+
+// TestNewGocflSummary ensures new gocfl summary is as safe as possible.
+func TestNewGocflSummary(t *testing.T) {
+	summary := newGocflSummary()
+	structType := reflect.TypeOf(summary)
+	structVal := reflect.ValueOf(summary)
+	fieldNum := structVal.NumField()
+	for i := 0; i < fieldNum; i++ {
+		field := structVal.Field(i)
+		if fmt.Sprintf("%s", field.Type()) == "string" {
+			continue
+		}
+		fieldName := structType.Field(i).Name
+		isSet := field.IsValid() && !field.IsZero()
+		if !isSet {
+			t.Errorf("summary constructor isn't setting: %s", fieldName)
+		}
+	}
+}
+
+// TestMetadata provides more generic testing of the test data within
+// this package.
+func TestMetadata(t *testing.T) {
+	for _, test := range metadataTests {
+		variantTest := bytes.NewBuffer(test.testData)
+		res, _ := ProcessMetadataStream(variantTest)
+		fmt.Println(test.label)
+		fmt.Println(res.Summary())
+	}
+}
+
+// TestGOCFLMetadata provides more generic testing the summary output
+// of the GOCFL struct.
+func TestGOCFLMetadata(t *testing.T) {
+	for _, test := range metadataTests {
+		variantTest := bytes.NewBuffer(test.testData)
+		res, _ := ProcessMetadataStream(variantTest)
+		fmt.Println(test.label
+		fmt.Println(res.GOCFLSummary())
 	}
 }
