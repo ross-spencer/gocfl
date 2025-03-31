@@ -139,159 +139,215 @@ var authorTest []byte = []byte(`
 }
 `)
 
+var hasPartTest []byte = []byte(`
+{
+    "@context": [
+        "https://w3id.org/ro/crate/1.1/context",
+        {
+            "@vocab": "http://schema.org/"
+        }
+    ],
+    "@graph": [
+		{
+            "@id": "test1",
+            "hasPart": {
+				"@id": "part1"
+            }
+        },
+        {
+            "@id": "test2",
+            "hasPart": [
+                {
+                    "@id": "part1"
+                },
+                {
+                    "@id": "part2"
+                },
+                {
+                    "@id": "part3"
+                }
+            ]
+        }
+    ]
+}
+`)
+
+var licenseTest []byte = []byte(`
+{
+    "@context": [
+        "https://w3id.org/ro/crate/1.1/context",
+        {
+            "@vocab": "http://schema.org/"
+        }
+    ],
+    "@graph": [
+        {
+            "@id": "test1",
+            "license": "https://spdx.org/licenses/license1"
+        },
+        {
+            "@id": "test2",
+            "license": {
+                "@id": "http://spdx.org/licenses/license2"
+            }
+        }
+    ]
+}
+`)
+
 // afternoonDrinks is an example RO-CRATE meta created from Dataverse.
 var afternoonDrinks []byte = []byte(`
 {
-  "@context": [
-    "https://w3id.org/ro/crate/1.1/context",
-    {
-      "@vocab": "http://schema.org/"
-    }
-  ],
-  "@graph": [
-    {
-      "@id": "ro-crate-metadata.json",
-      "@type": "CreativeWork",
-      "identifier": "ro-crate-metadata.json",
-      "about": {
-        "@id": "./RC0E772B3021E7E40C2BBDE657"
-      }
-    },
-    {
-      "@id": "./RC0E772B3021E7E40C2BBDE657",
-      "@type": "Dataset",
-      "name": "A study of my afternoon drinks",
-      "description": [
-        "A study of my afternoon consumption one week in 2018",
-        "Exported from Dataverse"
-      ],
-      "datePublished": "2018",
-      "license": "https://spdx.org/licenses/CC0-1.0.html",
-      "hasPart": [
+    "@context": [
+        "https://w3id.org/ro/crate/1.1/context",
         {
-          "@id": "metadata/agents.json"
-        },
-        {
-          "@id": "metadata/dataset.json"
-        },
-        {
-          "@id": "Drinkscitation-endnote.xml"
-        },
-        {
-          "@id": "Drinks.tab"
-        },
-        {
-          "@id": "Drinks.csv"
-        },
-        {
-          "@id": "Drinkscitation-ris.ris"
-        },
-        {
-          "@id": "Drinkscitation-bib.bib"
-        },
-        {
-          "@id": "Drinks.RData"
-        },
-        {
-          "@id": "Drinks-ddi.xml"
+            "@vocab": "http://schema.org/"
         }
-      ],
-      "contentUrl": [],
-      "keywords": [
-        "dataverse",
-        "study",
-        "observational-study"
-      ],
-      "author": {
-        "@id": "#Ross_Spencer-1"
-      },
-      "publisher": {
-        "@id": "https://ror.org/02s6k3f65"
-      },
-      "funder": {
-        "@id": "https://ror.org/02s6k3f65"
-      }
-    },
-    {
-      "@id": "metadata/agents.json",
-      "@type": "File"
-    },
-    {
-      "@id": "metadata/dataset.json",
-      "@type": "File"
-    },
-    {
-      "@id": "Drinkscitation-endnote.xml",
-      "@type": "File"
-    },
-    {
-      "@id": "Drinks.tab",
-      "@type": "File"
-    },
-    {
-      "@id": "Drinks.csv",
-      "@type": "File",
-      "description": "Primary information recorded for the study",
-      "datePublished": "2018",
-      "contentLocation": {
-        "@id": "#Toronto-1"
-      }
-    },
-    {
-      "@id": "Drinkscitation-ris.ris",
-      "@type": "File"
-    },
-    {
-      "@id": "Drinkscitation-bib.bib",
-      "@type": "File"
-    },
-    {
-      "@id": "Drinks.RData",
-      "@type": "File"
-    },
-    {
-      "@id": "Drinks-ddi.xml",
-      "@type": "File"
-    },
-    {
-      "@id": "#CSV_data_with_Dataverse_citation-1",
-      "@type": "Dataset",
-      "name": "CSV_data_with_Dataverse_citation-1",
-      "license": "https://spdx.org/licenses/CC0-1.0.html"
-    },
-    {
-      "@id": "#Ross_Spencer-1",
-      "@type": "Person",
-      "name": "Ross",
-      "familyName": "Spencer",
-      "givenName": "b33tk33p3r",
-      "funder": {
-        "@id": "https://ror.org/02s6k3f65"
-      },
-      "affiliation": {
-        "@id": "https://ror.org/02s6k3f65"
-      },
-      "address": "101 example.com str.",
-      "email": "ross@example.com",
-      "identifier": "RS4FCB6A76D83F4B39B542EF5D"
-    },
-    {
-      "@id": "https://ror.org/02s6k3f65",
-      "@type": "Organization",
-      "name": "University of Basel"
-    },
-    {
-      "@id": "#Toronto-1",
-      "@type": "Place",
-      "name": "Toronto-1",
-      "description": "A location somewhere in Canada",
-      "keywords": [
-        "dataverse",
-        "csv",
-        "behavioral analysis"
-      ]
-    }
-  ]
+    ],
+    "@graph": [
+        {
+            "@id": "ro-crate-metadata.json",
+            "@type": "CreativeWork",
+            "identifier": "ro-crate-metadata.json",
+            "about": {
+                "@id": "./RC0E772B3021E7E40C2BBDE657"
+            }
+        },
+        {
+            "@id": "./RC0E772B3021E7E40C2BBDE657",
+            "@type": "Dataset",
+            "name": "A study of my afternoon drinks",
+            "description": [
+                "A study of my afternoon consumption one week in 2018",
+                "Exported from Dataverse"
+            ],
+            "datePublished": "2018",
+            "license": "https://spdx.org/licenses/CC0-1.0.html",
+            "hasPart": [
+                {
+                    "@id": "metadata/agents.json"
+                },
+                {
+                    "@id": "metadata/dataset.json"
+                },
+                {
+                    "@id": "Drinkscitation-endnote.xml"
+                },
+                {
+                    "@id": "Drinks.tab"
+                },
+                {
+                    "@id": "Drinks.csv"
+                },
+                {
+                    "@id": "Drinkscitation-ris.ris"
+                },
+                {
+                    "@id": "Drinkscitation-bib.bib"
+                },
+                {
+                    "@id": "Drinks.RData"
+                },
+                {
+                    "@id": "Drinks-ddi.xml"
+                }
+            ],
+            "contentUrl": [],
+            "keywords": [
+                "dataverse",
+                "study",
+                "observational-study"
+            ],
+            "author": {
+                "@id": "#Ross_Spencer-1"
+            },
+            "publisher": {
+                "@id": "https://ror.org/02s6k3f65"
+            },
+            "funder": {
+                "@id": "https://ror.org/02s6k3f65"
+            }
+        },
+        {
+            "@id": "metadata/agents.json",
+            "@type": "File"
+        },
+        {
+            "@id": "metadata/dataset.json",
+            "@type": "File"
+        },
+        {
+            "@id": "Drinkscitation-endnote.xml",
+            "@type": "File"
+        },
+        {
+            "@id": "Drinks.tab",
+            "@type": "File"
+        },
+        {
+            "@id": "Drinks.csv",
+            "@type": "File",
+            "description": "Primary information recorded for the study",
+            "datePublished": "2018",
+            "contentLocation": {
+                "@id": "#Toronto-1"
+            }
+        },
+        {
+            "@id": "Drinkscitation-ris.ris",
+            "@type": "File"
+        },
+        {
+            "@id": "Drinkscitation-bib.bib",
+            "@type": "File"
+        },
+        {
+            "@id": "Drinks.RData",
+            "@type": "File"
+        },
+        {
+            "@id": "Drinks-ddi.xml",
+            "@type": "File"
+        },
+        {
+            "@id": "#CSV_data_with_Dataverse_citation-1",
+            "@type": "Dataset",
+            "name": "CSV_data_with_Dataverse_citation-1",
+            "license": "https://spdx.org/licenses/CC0-1.0.html"
+        },
+        {
+            "@id": "#Ross_Spencer-1",
+            "@type": "Person",
+            "name": "Ross",
+            "familyName": "Spencer",
+            "givenName": "b33tk33p3r",
+            "funder": {
+                "@id": "https://ror.org/02s6k3f65"
+            },
+            "affiliation": {
+                "@id": "https://ror.org/02s6k3f65"
+            },
+            "address": "101 example.com str.",
+            "email": "ross@example.com",
+            "identifier": "RS4FCB6A76D83F4B39B542EF5D"
+        },
+        {
+            "@id": "https://ror.org/02s6k3f65",
+            "@type": "Organization",
+            "name": "University of Basel"
+        },
+        {
+            "@id": "#Toronto-1",
+            "@type": "Place",
+            "name": "Toronto-1",
+            "description": "A location somewhere in Canada",
+            "keywords": [
+                "dataverse",
+                "csv",
+                "behavioral analysis"
+            ]
+        }
+    ]
 }
 `)
 
@@ -448,7 +504,8 @@ var galaxyCrate []byte = []byte(`
                 {
                     "@id": "data.csv"
                 }
-            ]
+            ],
+			"contentUrl": "http://example.com/resource/data"
         },
         {
             "@id": "data.csv",

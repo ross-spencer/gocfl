@@ -33,7 +33,7 @@ type gocflSummary struct {
 	// provided by ro-crate.
 	Signature   string
 	Title       string
-	Description string
+	Description []string
 	Created     string
 	Sets        []string
 	Keywords    []string
@@ -52,7 +52,7 @@ func newGocflSummary() gocflSummary {
 	return gocflSummary{
 		"",
 		"",
-		"",
+		[]string{},
 		"",
 		[]string{},
 		[]string{},
@@ -84,7 +84,9 @@ func (rcMeta rocrateMeta) GOCFLSummary() (gocflSummary, error) {
 	if rcMeta.Graph[1].Type != nil {
 		summary.Sets = rcMeta.Graph[1].Type.Value()
 	}
-	summary.Description = rcMeta.Graph[1].Description
+	if rcMeta.Graph[1].Description != nil {
+		summary.Description = rcMeta.Graph[1].Description.Value()
+	}
 	summary.Created = rcMeta.Graph[1].DatePublished
 	if rcMeta.Graph[1].License != nil {
 		summary.Licenses = rcMeta.Graph[1].License.StringSlice()

@@ -6,6 +6,8 @@ import (
 	"reflect"
 	"slices"
 	"testing"
+
+	"github.com/go-test/deep"
 )
 
 // TestContexts ensures that we can open an empty JSON-LD as expected
@@ -89,7 +91,14 @@ func getStringSliceValue(data graph, label string) []string {
 func TestStringVariants(t *testing.T) {
 	for _, test := range stringTests {
 		variantTest := bytes.NewBuffer(test.testData)
-		res, _ := ProcessMetadataStream(variantTest)
+		res, err := ProcessMetadataStream(variantTest)
+
+		if err != nil {
+			t.Errorf("%s: cannot process input ('%s')", test.label, err)
+		}
+		if len(res.Graph) != 2 {
+			fmt.Printf("test data is incorrect length: '%d'", len(res.Graph))
+		}
 		testID := res.Graph[0].ID
 		if testID != "test1" {
 			t.Errorf("test ID is incorrect: %s", testID)
@@ -109,7 +118,6 @@ func TestStringVariants(t *testing.T) {
 		}
 		value = getStringSliceValue(res.Graph[1], test.label)
 		if !slices.Equal(value, test.compare2) {
-			fmt.Println(test.label, "test 2")
 			t.Errorf(
 				"%s: string variant: '%v' result doesn't match expected: '%v'",
 				fmt.Sprintf("%s test 2", test.label),
@@ -129,7 +137,7 @@ type nodeTest struct {
 
 var nodeTests []nodeTest = []nodeTest{
 	nodeTest{
-		"name",
+		"author",
 		authorTest,
 		[]nodeIdentifier{
 			nodeIdentifier{"https://orcid.org/1234-0003-1974-0000"},
@@ -140,6 +148,28 @@ var nodeTests []nodeTest = []nodeTest{
 			nodeIdentifier{"https://orcid.org/0000-0003-1974-1234"},
 		},
 	},
+	nodeTest{
+		"hasPart",
+		hasPartTest,
+		[]nodeIdentifier{
+			nodeIdentifier{"part1"},
+		},
+		[]nodeIdentifier{
+			nodeIdentifier{"part1"},
+			nodeIdentifier{"part2"},
+			nodeIdentifier{"part3"},
+		},
+	},
+	nodeTest{
+		"license",
+		licenseTest,
+		[]nodeIdentifier{
+			nodeIdentifier{"https://spdx.org/licenses/license1"},
+		},
+		[]nodeIdentifier{
+			nodeIdentifier{"http://spdx.org/licenses/license2"},
+		},
+	},
 }
 
 // getNodeIdentifierSliceValue allows us to get values more dynamically
@@ -148,6 +178,10 @@ func getNodeIdentifierSliceValue(data graph, label string) []nodeIdentifier {
 	switch label {
 	case "author":
 		return data.Author.Value()
+	case "license":
+		return data.License.Value()
+	case "hasPart":
+		return data.HasPart.Value()
 	}
 	return []nodeIdentifier{}
 }
@@ -157,12 +191,23 @@ func getNodeIdentifierSliceValue(data graph, label string) []nodeIdentifier {
 func TestNodeIdentifierVariants(t *testing.T) {
 	for _, test := range nodeTests {
 		variantTest := bytes.NewBuffer(test.testData)
-		res, _ := ProcessMetadataStream(variantTest)
+		res, err := ProcessMetadataStream(variantTest)
+
+		if err != nil {
+			t.Errorf("%s: cannot process input ('%s')", test.label, err)
+		}
+		if len(res.Graph) != 2 {
+			fmt.Printf(
+				"%s: test data is incorrect length: '%d'",
+				test.label,
+				len(res.Graph),
+			)
+		}
 		testID := res.Graph[0].ID
 		if testID != "test1" {
 			t.Errorf("test ID is incorrect: %s", testID)
 		}
-		value := getNodeIdentifierSliceValue(res.Graph[0], "author")
+		value := getNodeIdentifierSliceValue(res.Graph[0], test.label)
 		for idx, v := range value {
 			if v.ID != test.compare1[idx].ID {
 				t.Errorf(
@@ -177,7 +222,7 @@ func TestNodeIdentifierVariants(t *testing.T) {
 		if testID != "test2" {
 			t.Errorf("test ID is incorrect: %s", testID)
 		}
-		value = getNodeIdentifierSliceValue(res.Graph[1], "author")
+		value = getNodeIdentifierSliceValue(res.Graph[1], test.label)
 		for idx, v := range value {
 			if v.ID != test.compare2[idx].ID {
 				t.Errorf(
@@ -230,32 +275,355 @@ func TestNewGocflSummary(t *testing.T) {
 }
 
 type metadataTest struct {
-	label    string
-	testData []byte
-	// summary...
-	// gocfl summary...
+	label        string
+	testData     []byte
+	summary      rocrateSummary
+	gocflSummary gocflSummary
 }
 
 var metadataTests []metadataTest = []metadataTest{
 	metadataTest{
 		"empty",
 		emptyCrate,
+		rocrateSummary{
+			// ID
+			"",
+			// Name
+			[]string{},
+			// Type
+			[]string{},
+			// Description
+			[]string{},
+			// DatePublished
+			"",
+			// Author
+			[]string{},
+			// License
+			"",
+			// HasPart
+			[]string{},
+			// ContentURL
+			[]string{},
+			// Keywords
+			[]string{},
+			// Publisher
+			[]string{},
+			// About
+			"./",
+		},
+		gocflSummary{
+			// signature
+			"",
+			// title
+			"",
+			// description
+			[]string{},
+			// created
+			"",
+			// sets
+			[]string{},
+			// keywords
+			[]string{},
+			// licenses
+			[]string{},
+			// provided by caller.
+			"",
+			"",
+			"",
+			"",
+			"",
+		},
 	},
 	metadataTest{
 		"afternoon drinks",
 		afternoonDrinks,
+		rocrateSummary{
+			// ID
+			"./RC0E772B3021E7E40C2BBDE657",
+			// Name
+			[]string{"A study of my afternoon drinks"},
+			// Type
+			[]string{"Dataset"},
+			// Description
+			[]string{
+				"A study of my afternoon consumption one week in 2018",
+				"Exported from Dataverse",
+			},
+			// DatePublished
+			"2018",
+			// Author
+			[]string{"#Ross_Spencer-1"},
+			// License
+			"https://spdx.org/licenses/CC0-1.0.html",
+			// HasPart
+			[]string{
+				"metadata/agents.json",
+				"metadata/dataset.json",
+				"Drinkscitation-endnote.xml",
+				"Drinks.tab",
+				"Drinks.csv",
+				"Drinkscitation-ris.ris",
+				"Drinkscitation-bib.bib",
+				"Drinks.RData",
+				"Drinks-ddi.xml",
+			},
+			// ContentURL
+			nil,
+			// Keywords
+			[]string{
+				"dataverse",
+				"study",
+				"observational-study",
+			},
+			// Publisher
+			[]string{
+				"https://ror.org/02s6k3f65",
+			},
+			// About
+			"./RC0E772B3021E7E40C2BBDE657",
+		},
+		gocflSummary{
+			// signature
+			"./RC0E772B3021E7E40C2BBDE657",
+			// title
+			"A study of my afternoon drinks",
+			// description
+			[]string{
+				"A study of my afternoon consumption one week in 2018",
+				"Exported from Dataverse",
+			},
+			// created
+			"2018",
+			// sets
+			[]string{
+				"Dataset",
+			},
+			// keywords
+			[]string{
+				"dataverse",
+				"study",
+				"observational-study",
+			},
+			// licenses
+			[]string{
+				"https://spdx.org/licenses/CC0-1.0.html",
+			},
+			// provided by caller.
+			"",
+			"",
+			"",
+			"",
+			"",
+		},
 	},
 	metadataTest{
 		"carpentries",
 		carpentriesCrate,
+		rocrateSummary{
+			// ID
+			"./",
+			// Name
+			[]string{
+				"Example dataset for RO-Crate specification",
+			},
+			// Type
+			[]string{
+				"Dataset",
+				"LearningResource",
+			},
+			// Description
+			[]string{
+				"Official rainfall readings for Katoomba, NSW 2022, Australia",
+			},
+			// DatePublished
+			"2023-05-22T12:03:00+0100",
+			// Author
+			[]string{
+				"https://orcid.org/0000-0002-1825-0097",
+			},
+			// License
+			"http://spdx.org/licenses/CC0-1.0",
+			// HasPart
+			[]string{
+				"data.csv",
+			},
+			// ContentURL
+			[]string{},
+			// Keywords
+			[]string{},
+			// Publisher
+			[]string{
+				"https://ror.org/05gq02987",
+			},
+			// About
+			"./",
+		},
+		gocflSummary{
+			// signature
+			"./",
+			// title
+			"Example dataset for RO-Crate specification",
+			// description
+			[]string{
+				"Official rainfall readings for Katoomba, NSW 2022, Australia",
+			},
+			// created
+			"2023-05-22T12:03:00+0100",
+			// sets
+			[]string{
+				"Dataset",
+				"LearningResource",
+			},
+			// keywords
+			[]string{},
+			// licenses
+			[]string{
+				"http://spdx.org/licenses/CC0-1.0",
+			},
+			// provided by caller.
+			"",
+			"",
+			"",
+			"",
+			"",
+		},
 	},
 	metadataTest{
 		"spec",
 		specCrate,
+		rocrateSummary{
+			// ID
+			"./",
+			// Name
+			[]string{
+				"Example RO-Crate",
+			},
+			// Type
+			[]string{
+				"Dataset",
+			},
+			// Description
+			[]string{
+				"The RO-Crate Root Data Entity",
+			},
+			// DatePublished
+			"",
+			// Author
+			[]string{},
+			// License
+			"",
+			// HasPart
+			[]string{
+				"data1.txt",
+				"data2.txt",
+			},
+			// ContentURL
+			[]string{},
+			// Keywords
+			[]string{},
+			// Publisher
+			[]string{},
+			// About
+			"./",
+		},
+		gocflSummary{
+			// signature
+			"./",
+			// title
+			"Example RO-Crate",
+			// description
+			[]string{
+				"The RO-Crate Root Data Entity",
+			},
+			// created
+			"",
+			// sets
+			[]string{"Dataset"},
+			// keywords
+			[]string{},
+			// licenses
+			[]string{},
+			// provided by caller.
+			"",
+			"",
+			"",
+			"",
+			"",
+		},
 	},
 	metadataTest{
 		"galaxy",
 		galaxyCrate,
+		rocrateSummary{
+			// ID
+			"./",
+			// Name
+			[]string{
+				"Demo Crate",
+			},
+			// Type
+			[]string{
+				"Dataset",
+				"LearningResource",
+			},
+			// Description
+			[]string{
+				"a demo crate for Galaxy training",
+			},
+			// DatePublished
+			"2024-03-08",
+			// Author
+			[]string{
+				"https://orcid.org/0000-0000-0000-0000",
+			},
+			// License
+			"https://spdx.org/licenses/CC-BY-NC-SA-4.0.html",
+			// HasPart
+			[]string{
+				"data.csv",
+			},
+			// ContentURL
+			[]string{
+				"http://example.com/resource/data",
+			},
+			// Keywords
+			[]string{},
+			// Publisher
+			[]string{
+				"https://ror.org/0abcdef00",
+			},
+			// About
+			"./",
+		},
+		gocflSummary{
+			// signature
+			"./",
+			// title
+			"Demo Crate",
+			// description
+			[]string{
+				"a demo crate for Galaxy training",
+			},
+			// created
+			"2024-03-08",
+			// sets
+			[]string{
+				"Dataset",
+				"LearningResource",
+			},
+			// keywords
+			[]string{},
+			// licenses
+			[]string{
+				"https://spdx.org/licenses/CC-BY-NC-SA-4.0.html",
+			},
+			// provided by caller.
+			"",
+			"",
+			"",
+			"",
+			"",
+		},
 	},
 }
 
@@ -264,9 +632,14 @@ var metadataTests []metadataTest = []metadataTest{
 func TestMetadata(t *testing.T) {
 	for _, test := range metadataTests {
 		variantTest := bytes.NewBuffer(test.testData)
-		res, _ := ProcessMetadataStream(variantTest)
-		fmt.Println(test.label)
-		fmt.Println(res.Summary())
+		processed, err := ProcessMetadataStream(variantTest)
+		if err != nil {
+			t.Errorf("%s: cannot process input ('%s')", test.label, err)
+		}
+		res, _ := processed.Summary()
+		if diff := deep.Equal(res, test.summary); diff != nil {
+			t.Errorf("%s summary metadata doesn't match: %s", test.label, diff)
+		}
 	}
 }
 
@@ -275,8 +648,10 @@ func TestMetadata(t *testing.T) {
 func TestGOCFLMetadata(t *testing.T) {
 	for _, test := range metadataTests {
 		variantTest := bytes.NewBuffer(test.testData)
-		res, _ := ProcessMetadataStream(variantTest)
-		fmt.Println(test.label)
-		fmt.Println(res.GOCFLSummary())
+		processed, _ := ProcessMetadataStream(variantTest)
+		res, _ := processed.GOCFLSummary()
+		if diff := deep.Equal(res, test.gocflSummary); diff != nil {
+			t.Errorf("%s gocfl metadata doesn't match: %s", test.label, diff)
+		}
 	}
 }

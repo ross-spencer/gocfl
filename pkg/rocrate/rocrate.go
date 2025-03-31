@@ -26,16 +26,20 @@ type rocrateMeta struct {
 }
 
 type graph struct {
-	ID               string                 `json:"@id"`
-	Type             *StringOrSlice         `json:"@type,omitempty"`
-	About            *NodeIdentifierOrSlice `json:"about,omitempty"`
-	Affiliation      *NodeIdentifierOrSlice `json:"affiliation,omitempty"`
-	Author           *NodeIdentifierOrSlice `json:"author,omitempty"`
+	ID    string                 `json:"@id"`
+	Name  *StringOrSlice         `json:"name,omitempty"`
+	Type  *StringOrSlice         `json:"@type,omitempty"`
+	About *NodeIdentifierOrSlice `json:"about,omitempty"`
+
+	Author *NodeIdentifierOrSlice `json:"author,omitempty"`
+
+	Affiliation *NodeIdentifierOrSlice `json:"affiliation,omitempty"`
+
 	Conforms         *NodeIdentifierOrSlice `json:"conformsTo,omitempty"`
 	ContentLocation  *NodeIdentifierOrSlice `json:"contentLocation,omitempty"`
-	ContentURL       string                 `json:"contentUrl,omitempty"`
+	ContentURL       *NodeIdentifierOrSlice `json:"contentUrl,omitempty"`
 	DatePublished    string                 `json:"datePublished,omitempty"`
-	Description      string                 `json:"description,omitempty"`
+	Description      *StringOrSlice         `json:"description,omitempty"`
 	EncodingFormat   string                 `json:"enncodingFormat,omitempty"`
 	FamilyName       string                 `json:"familyName,omitempty"`
 	Funder           *NodeIdentifierOrSlice `json:"funder,omitempty"`
@@ -46,7 +50,6 @@ type graph struct {
 	License          *NodeIdentifierOrSlice `json:"license,omitempty"`
 	Latitude         string                 `json:"latitude,omitempty"`
 	Longitude        string                 `json:"longitude,omitempty"`
-	Name             *StringOrSlice         `json:"name,omitempty"`
 	Publisher        *NodeIdentifierOrSlice `json:"publisher,omitempty"`
 	TemporalCoverage string                 `json:"temporalCoverage,omitempty"`
 	URL              string                 `json:"url,omitempty"`
@@ -60,10 +63,12 @@ type rocrateContext struct {
 // Context provides a helpter to return the RO-CRATE context from the
 // RO-CRATE data structure.
 //
-// TODO: must be able to cast to rocrateContext some way, but it is
-// currently eluding me.
+// NB: we must be able to cast to rocrateContext some way, but it is
+// currently eluding me. We should circle back to this.
 func (rcMeta *rocrateMeta) Context() string {
 
+	// E.g.
+	//
 	// "context":
 	// [
 	//		https://w3id.org/ro/crate/1.1/context,
@@ -83,18 +88,17 @@ func (rcMeta *rocrateMeta) Context() string {
 	}
 	rcContext, ok := rcMeta.LDContext.([]interface{})
 	if !ok {
-		return fmt.Sprintf("cannot determine @context from json-ld input")
+		return fmt.Sprintf("cannot determine @context from json-ld input: %v", rcMeta.LDContext)
 	}
 	context := (rcContext[0].(string))
-	// vocab
-	_ = rcContext[1].(map[string]interface{})
 	return context
 }
 
 // rocrateSummary provides a summary structure we can access safefly
-// to reason about the data in a ro-crate.
+// so as to reason about the data in a ro-crate.
+// The data in this structure mirrors the basic information in the
+// ro-create-preview.htm file.
 type rocrateSummary struct {
-
 	// graph[1]
 	ID string
 	// graph[1]
@@ -102,7 +106,7 @@ type rocrateSummary struct {
 	// graph[1]
 	Type []string
 	// graph[1]
-	Description string
+	Description []string
 	// graph[1]
 	DatePublished string
 	// graph[1]
@@ -112,14 +116,14 @@ type rocrateSummary struct {
 	// graph[1]
 	HasPart []string
 	// graph[1]
-	ContentURL string
+	ContentURL []string
 	// graph[1]
 	Keywords []string
 	// graph[1]
 	Publisher []string
 	// graph[0]
 	// Referenced by refers to sections of the RO-CRATE that reference
-	// this summary.
+	// this summary. It takes this information from the about field.
 	About string
 }
 
@@ -130,18 +134,20 @@ func newSummary() rocrateSummary {
 		"",
 		[]string{},
 		[]string{},
-		"",
-		"",
 		[]string{},
 		"",
 		[]string{},
 		"",
+		[]string{},
+		[]string{},
 		[]string{},
 		[]string{},
 		"",
 	}
 }
 
+// Summary returns a summary ro-crate structure from the data we
+// have in-memory.
 func (rcMeta rocrateMeta) Summary() (rocrateSummary, error) {
 
 	if len(rcMeta.Graph) == 0 {
@@ -158,7 +164,29 @@ func (rcMeta rocrateMeta) Summary() (rocrateSummary, error) {
 	if rcMeta.Graph[1].Type != nil {
 		summary.Type = rcMeta.Graph[1].Type.Value()
 	}
-	summary.Description = rcMeta.Graph[1].Description
+
+	// TODO: delete...
+	/*
+		fmt.Println("------------ SUMMARY ------------------")
+		fmt.Println(rcMeta.Graph[1].ID)
+		fmt.Println(rcMeta.Graph[1].Name)
+		fmt.Println(rcMeta.Graph[1].Type)
+		fmt.Println(rcMeta.Graph[1].Description)
+		fmt.Println(rcMeta.Graph[1].DatePublished)
+		fmt.Println(rcMeta.Graph[1].Author)
+		fmt.Println(rcMeta.Graph[1].License)
+		fmt.Println(rcMeta.Graph[1].HasPart)
+		fmt.Println(rcMeta.Graph[1].URL)
+		fmt.Println(rcMeta.Graph[1].Keywords)
+		fmt.Println(rcMeta.Graph[1].Publisher)
+		fmt.Println(rcMeta.Graph[1].About)
+		fmt.Println(rcMeta.Graph[1].ContentURL)
+		fmt.Println("------------ SUMMARY ------------------")
+	*/
+
+	if rcMeta.Graph[1].Description != nil {
+		summary.Description = rcMeta.Graph[1].Description.Value()
+	}
 	summary.DatePublished = rcMeta.Graph[1].DatePublished
 	if rcMeta.Graph[1].Author != nil {
 		summary.Author = rcMeta.Graph[1].Author.StringSlice()
@@ -172,12 +200,14 @@ func (rcMeta rocrateMeta) Summary() (rocrateSummary, error) {
 	if rcMeta.Graph[1].HasPart != nil {
 		summary.HasPart = rcMeta.Graph[1].HasPart.StringSlice()
 	}
-	summary.ContentURL = rcMeta.Graph[1].URL
 	if rcMeta.Graph[1].Keywords != nil {
 		summary.Keywords = rcMeta.Graph[1].Keywords.Value()
 	}
 	if rcMeta.Graph[1].Publisher != nil {
 		summary.Publisher = rcMeta.Graph[1].Publisher.StringSlice()
+	}
+	if rcMeta.Graph[1].ContentURL != nil {
+		summary.ContentURL = rcMeta.Graph[1].ContentURL.StringSlice()
 	}
 	if rcMeta.Graph[0].About != nil {
 		about := rcMeta.Graph[0].About.StringSlice()
@@ -188,6 +218,7 @@ func (rcMeta rocrateMeta) Summary() (rocrateSummary, error) {
 	return summary, nil
 }
 
+// String provides a stringer for the rocrateMeta object.
 func (rcMeta rocrateMeta) String() string {
 	if len(rcMeta.Graph) == 0 {
 		return fmt.Sprintf("ro-crate-metadata.json is empty")
@@ -210,7 +241,7 @@ Name: %s`,
 	return strings.TrimSpace(out)
 }
 
-/* String-slice type and handler.
+/* StringOrSlice type and handler:
 
 For more info on the type handling below:
 
@@ -266,14 +297,22 @@ type nodeIdentifier struct {
 type NodeIdentifierOrSlice []nodeIdentifier
 
 func (s *NodeIdentifierOrSlice) UnmarshalJSON(d []byte) error {
-	//fmt.Println(d[0], '{', '[', string(d))
 	if d[0] == '{' {
 		var v nodeIdentifier
 		err := json.Unmarshal(d, &v)
 		*s = NodeIdentifierOrSlice{v}
 		return err
 	}
-	//fmt.Println(d[0], '"', '{', '[')
+	if d[0] == '"' {
+		// we might have a string that needs converting. This technique
+		// might also work for all RO-CRATE objects, so we should
+		// circle back to this.
+		var v nodeIdentifier
+		converted := fmt.Sprintf("{\"@id\": %v}", string(d))
+		err := json.Unmarshal([]byte(converted), &v)
+		*s = NodeIdentifierOrSlice{v}
+		return err
+	}
 	var v []nodeIdentifier
 	err := json.Unmarshal(d, &v)
 	*s = NodeIdentifierOrSlice(v)
@@ -294,18 +333,16 @@ func (s NodeIdentifierOrSlice) StringSlice() []string {
 
 // ProcessMetadataStream enables processing of ro-crate-metadata.json
 // and return in the simple structs made available in this package.
-func ProcessMetadataStream(meta io.Reader) (rocrateMeta, error) {
+func ProcessMetadataStream(metaObject io.Reader) (rocrateMeta, error) {
 	buf := new(bytes.Buffer)
-	_, err := io.Copy(buf, meta)
+	_, err := io.Copy(buf, metaObject)
 	if err != nil {
 		return rocrateMeta{}, err
 	}
-	res := rocrateMeta{}
-	json.Unmarshal(buf.Bytes(), &res)
-	//j, _ := json.MarshalIndent(res, "", "   ")
-	if !slices.Contains(versions, res.Context()) {
-		return rocrateMeta{}, fmt.Errorf("cannot provess this version")
+	meta := rocrateMeta{}
+	json.Unmarshal(buf.Bytes(), &meta)
+	if !slices.Contains(versions, meta.Context()) {
+		return rocrateMeta{}, fmt.Errorf("cannot process this version: %s", meta.Context())
 	}
-	//fmt.Println(j)
-	return res, nil
+	return meta, nil
 }
