@@ -9,6 +9,7 @@ import (
 	"log"
 
 	"emperror.dev/errors"
+	"strings"
 
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
 	"github.com/ocfl-archive/gocfl/v2/pkg/rocrate"
@@ -16,6 +17,7 @@ import (
 
 // ROCrateFileName ...
 const ROCrateFileName = "NNNN-ro-crate"
+const ROCrateEnabled = "enabled"
 
 // RoCrateFileDescription ...
 const RoCrateFileDescription = "Description for RO-Crate extension"
@@ -52,12 +54,23 @@ func GetROCrateFileParams() []*ocfl.ExtensionExternalParam {
 	return []*ocfl.ExtensionExternalParam{
 		{
 			ExtensionName: ROCrateFileName,
-			Functions:     []string{"add", "update", "create"},
-			Param:         "enabled",
+			Functions:     []string{"add", "create"},
+			Param:         ROCrateEnabled,
 			Description:   "replace metafile extension functionality if enabled and map RO-CRATE metadata",
 			Default:       "false",
 		},
+		{
+			ExtensionName: ROCrateFileName,
+			Functions:     []string{"add", "create"},
+			Param:         "metadata",
+			Description:   "TEST: test we can add metadata here...",
+			Default:       "",
+		},
 	}
+}
+
+func GetROCrateEnabled() string {
+	return fmt.Sprintf("ext-%s-%s", ROCrateFileName, ROCrateEnabled)
 }
 
 // NewROCrateFileFS ...
@@ -125,6 +138,17 @@ func (rcFile *ROCrateFile) IsRegistered() bool {
 // the config, e.g. CLI (or TOML?)
 func (rcFile *ROCrateFile) SetParams(params map[string]string) error {
 	// not implemented.
+
+	if params == nil {
+		panic("nil")
+	}
+
+	//fmt.Printf("%v", params)
+	fmt.Println(fmt.Sprintf("%s-enabled", ROCrateFileName))
+	fmt.Println(params["ext-NNNN-ro-crate-enabled"])
+	fmt.Println(params["ext-NNNN-ro-crate-metadata"])
+	//panic("params")
+
 	return nil
 }
 
@@ -187,9 +211,26 @@ func copyStream(reader io.Reader) (io.Reader, error) {
 	return buf, nil
 }
 
+// infoJSONExists provides a guard that ensures we know what we're
+// doing with info.json and its replacement when driven by the
+// RO-CRATE extension.
+func infoJSONExists(object ocfl.Object) bool {
+	inventory := object.GetInventory()
+	for _, v := range inventory.GetManifest() {
+		s := strings.Split(v[0], "/")
+		if s[len(s)-1] == "info.json" {
+			return true
+		}
+	}
+	return false
+}
+
 // writeMetafile ...
 func (rcFile *ROCrateFile) writeMetafile(object ocfl.Object, rcMeta string) error {
 	log.Println("ROCRATE: extension...")
+	if infoJSONExists(object) {
+		return fmt.Errorf("info.json exists, ensure metafile extension is not configured")
+	}
 	mappingFile := "mapping.txt2" // TODO: make const, no magic.
 	log.Println(mappingFile)
 	data := []byte(rcMeta)
@@ -224,9 +265,15 @@ func (rcFile *ROCrateFile) StreamObject(
 	if err != nil {
 		return err
 	}
-	rocrate.ProcessMetadataStream(metaCopy)
-	rcMeta := "this is some data..."
-	rcFile.writeMetafile(object, rcMeta)
+	log.Println("processing")
+	processed, err := rocrate.ProcessMetadataStream(metaCopy)
+	if err != nil {
+		panic("there shouldn't be an error...")
+	}
+	log.Println("done processing")
+	rcMeta, _ := processed.Summary()
+	//rcMeta := "this is some data..."
+	rcFile.writeMetafile(object, rcMeta.String())
 	return nil
 }
 
