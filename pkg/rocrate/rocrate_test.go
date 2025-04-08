@@ -277,15 +277,15 @@ func TestNewGocflSummary(t *testing.T) {
 type metadataTest struct {
 	label        string
 	testData     []byte
-	summary      rocrateSummary
-	gocflSummary gocflSummary
+	summary      RocrateSummary
+	gocflSummary GocflSummary
 }
 
 var metadataTests []metadataTest = []metadataTest{
 	metadataTest{
 		"empty",
 		emptyCrate,
-		rocrateSummary{
+		RocrateSummary{
 			// ID
 			"",
 			// Name
@@ -311,21 +311,21 @@ var metadataTests []metadataTest = []metadataTest{
 			// About
 			"./",
 		},
-		gocflSummary{
+		GocflSummary{
 			// signature
 			"",
 			// title
 			"",
 			// description
-			[]string{},
+			"",
 			// created
 			"",
 			// sets
-			[]string{},
+			"",
 			// keywords
-			[]string{},
+			"",
 			// licenses
-			[]string{},
+			"",
 			// provided by caller.
 			"",
 			"",
@@ -337,7 +337,7 @@ var metadataTests []metadataTest = []metadataTest{
 	metadataTest{
 		"afternoon drinks",
 		afternoonDrinks,
-		rocrateSummary{
+		RocrateSummary{
 			// ID
 			"./RC0E772B3021E7E40C2BBDE657",
 			// Name
@@ -382,32 +382,21 @@ var metadataTests []metadataTest = []metadataTest{
 			// About
 			"./RC0E772B3021E7E40C2BBDE657",
 		},
-		gocflSummary{
+		GocflSummary{
 			// signature
 			"./RC0E772B3021E7E40C2BBDE657",
 			// title
 			"A study of my afternoon drinks",
 			// description
-			[]string{
-				"A study of my afternoon consumption one week in 2018",
-				"Exported from Dataverse",
-			},
+			"A study of my afternoon consumption one week in 2018; Exported from Dataverse",
 			// created
 			"2018",
 			// sets
-			[]string{
-				"Dataset",
-			},
+			"Dataset",
 			// keywords
-			[]string{
-				"dataverse",
-				"study",
-				"observational-study",
-			},
+			"dataverse; study; observational-study",
 			// licenses
-			[]string{
-				"https://spdx.org/licenses/CC0-1.0.html",
-			},
+			"https://spdx.org/licenses/CC0-1.0.html",
 			// provided by caller.
 			"",
 			"",
@@ -419,7 +408,7 @@ var metadataTests []metadataTest = []metadataTest{
 	metadataTest{
 		"carpentries",
 		carpentriesCrate,
-		rocrateSummary{
+		RocrateSummary{
 			// ID
 			"./",
 			// Name
@@ -458,28 +447,21 @@ var metadataTests []metadataTest = []metadataTest{
 			// About
 			"./",
 		},
-		gocflSummary{
+		GocflSummary{
 			// signature
 			"./",
 			// title
 			"Example dataset for RO-Crate specification",
 			// description
-			[]string{
-				"Official rainfall readings for Katoomba, NSW 2022, Australia",
-			},
+			"Official rainfall readings for Katoomba, NSW 2022, Australia",
 			// created
 			"2023-05-22T12:03:00+0100",
 			// sets
-			[]string{
-				"Dataset",
-				"LearningResource",
-			},
+			"Dataset; LearningResource",
 			// keywords
-			[]string{},
+			"",
 			// licenses
-			[]string{
-				"http://spdx.org/licenses/CC0-1.0",
-			},
+			"http://spdx.org/licenses/CC0-1.0",
 			// provided by caller.
 			"",
 			"",
@@ -491,7 +473,7 @@ var metadataTests []metadataTest = []metadataTest{
 	metadataTest{
 		"spec",
 		specCrate,
-		rocrateSummary{
+		RocrateSummary{
 			// ID
 			"./",
 			// Name
@@ -526,23 +508,21 @@ var metadataTests []metadataTest = []metadataTest{
 			// About
 			"./",
 		},
-		gocflSummary{
+		GocflSummary{
 			// signature
 			"./",
 			// title
 			"Example RO-Crate",
 			// description
-			[]string{
-				"The RO-Crate Root Data Entity",
-			},
+			"The RO-Crate Root Data Entity",
 			// created
 			"",
 			// sets
-			[]string{"Dataset"},
+			"Dataset",
 			// keywords
-			[]string{},
+			"",
 			// licenses
-			[]string{},
+			"",
 			// provided by caller.
 			"",
 			"",
@@ -554,7 +534,7 @@ var metadataTests []metadataTest = []metadataTest{
 	metadataTest{
 		"galaxy",
 		galaxyCrate,
-		rocrateSummary{
+		RocrateSummary{
 			// ID
 			"./",
 			// Name
@@ -595,28 +575,21 @@ var metadataTests []metadataTest = []metadataTest{
 			// About
 			"./",
 		},
-		gocflSummary{
+		GocflSummary{
 			// signature
 			"./",
 			// title
 			"Demo Crate",
 			// description
-			[]string{
-				"a demo crate for Galaxy training",
-			},
+			"a demo crate for Galaxy training",
 			// created
 			"2024-03-08",
 			// sets
-			[]string{
-				"Dataset",
-				"LearningResource",
-			},
+			"Dataset; LearningResource",
 			// keywords
-			[]string{},
+			"",
 			// licenses
-			[]string{
-				"https://spdx.org/licenses/CC-BY-NC-SA-4.0.html",
-			},
+			"https://spdx.org/licenses/CC-BY-NC-SA-4.0.html",
 			// provided by caller.
 			"",
 			"",
@@ -649,6 +622,10 @@ func TestGOCFLMetadata(t *testing.T) {
 	for _, test := range metadataTests {
 		variantTest := bytes.NewBuffer(test.testData)
 		processed, _ := ProcessMetadataStream(variantTest)
+		currentTime = func(bool) string {
+			// Mock getTime function.
+			return ""
+		}
 		res, _ := processed.GOCFLSummary()
 		if diff := deep.Equal(res, test.gocflSummary); diff != nil {
 			t.Errorf("%s gocfl metadata doesn't match: %s", test.label, diff)

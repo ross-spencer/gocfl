@@ -7,9 +7,10 @@ import (
 	"io"
 	"io/fs"
 	"log"
+	"slices"
+	"strings"
 
 	"emperror.dev/errors"
-	"strings"
 
 	"github.com/ocfl-archive/gocfl/v2/pkg/ocfl"
 	"github.com/ocfl-archive/gocfl/v2/pkg/rocrate"
@@ -18,6 +19,15 @@ import (
 // ROCrateFileName ...
 const ROCrateFileName = "NNNN-ro-crate"
 const ROCrateEnabled = "enabled"
+
+// ext prefix.
+const extPrefix = "ext"
+
+// Additional parameters for RO-CRATE metafile.
+const rOCrateParamOrg = "organisation"
+const rOCrateParamOrgID = "organisationID"
+const rOCrateParamUser = "user"
+const rOCrateParamAddress = "address"
 
 // RoCrateFileDescription ...
 const RoCrateFileDescription = "Description for RO-Crate extension"
@@ -32,6 +42,8 @@ type ROCrateFileConfig struct {
 	StorageType string `json:"storageType"`
 	// StorageName ...
 	StorageName string `json:"storageName"`
+	// ...
+	MetaName string `json:"metaFileName,omitempty"`
 	// MetadataFile ...
 	MetadataFile []string `json:"metadataFile"`
 	// SupportedSchema ...
@@ -40,13 +52,25 @@ type ROCrateFileConfig struct {
 	Documentation []string `json:"documentation"`
 }
 
-// ROCrateFile provides a combination of configuration and other metadata.
+// ROCrateFile provides a way to record configuration and other
+// metadata.
 type ROCrateFile struct {
 	// combination of the config and other metadata.
 	*ROCrateFileConfig
-	fsys   fs.FS
-	stored bool
-	info   map[string][]byte
+	fsys       fs.FS
+	stored     bool
+	info       map[string][]byte
+	enabled    bool
+	userConfig *userConfig
+}
+
+// userConfig stores the additional metadata a user needs to provide to
+// complete the info.json object.
+type userConfig struct {
+	organisation   string
+	organisationID string
+	user           string
+	address        string
 }
 
 // GetROCrateFileParams ...
@@ -62,15 +86,32 @@ func GetROCrateFileParams() []*ocfl.ExtensionExternalParam {
 		{
 			ExtensionName: ROCrateFileName,
 			Functions:     []string{"add", "create"},
-			Param:         "metadata",
-			Description:   "TEST: test we can add metadata here...",
+			Param:         rOCrateParamOrg,
+			Description:   "provide insitutional organisation to the RO-CRATE extension metadata",
+			Default:       "",
+		},
+		{
+			ExtensionName: ROCrateFileName,
+			Functions:     []string{"add", "create"},
+			Param:         rOCrateParamOrgID,
+			Description:   "provide insitutional organisation ID to the RO-CRATE extension metadata",
+			Default:       "",
+		},
+		{
+			ExtensionName: ROCrateFileName,
+			Functions:     []string{"add", "create"},
+			Param:         rOCrateParamUser,
+			Description:   "provide insitutional user to the RO-CRATE extension metadata",
+			Default:       "",
+		},
+		{
+			ExtensionName: ROCrateFileName,
+			Functions:     []string{"add", "create"},
+			Param:         rOCrateParamAddress,
+			Description:   "provide user address to the RO-CRATE extension metadata",
 			Default:       "",
 		},
 	}
-}
-
-func GetROCrateEnabled() string {
-	return fmt.Sprintf("ext-%s-%s", ROCrateFileName, ROCrateEnabled)
 }
 
 // NewROCrateFileFS ...
@@ -83,9 +124,6 @@ func NewROCrateFileFS(fsys fs.FS) (*ROCrateFile, error) {
 		ExtensionConfig: &ocfl.ExtensionConfig{ExtensionName: ROCrateFileName},
 		StorageType:     "extension",
 		StorageName:     "metadata",
-		MetadataFile:    []string{"ro-crate-metadata.json", "ro-crate-metadata.jsonld"},
-		SupportedSchema: []string{"https://w3id.org/ro/crate/1.1/context"},
-		Documentation:   []string{"ro-crate-preview.html"},
 	}
 	if err := json.Unmarshal(data, config); err != nil {
 		return nil, errors.Wrapf(err, "cannot unmarshal DirectCleanConfig '%s'", string(data))
@@ -134,21 +172,52 @@ func (rcFile *ROCrateFile) IsRegistered() bool {
 	return registered
 }
 
+// ParamROCrateEnabled provides a mechanism for retrieivng the enabled
+// parameter from the user's configuration, e.g. given a param map,
+// call `param[ParamRoCrateEnabled()]“.
+func ParamROCrateEnabled() string {
+	return fmt.Sprintf("%s-%s-%s", extPrefix, ROCrateFileName, ROCrateEnabled)
+}
+
+// paramROCrateOrg ...
+func paramROCrateOrg() string {
+	return fmt.Sprintf("%s-%s-%s", extPrefix, ROCrateFileName, rOCrateParamOrg)
+}
+
+// paramROCrateOrgID ...
+func paramROCrateOrgID() string {
+	return fmt.Sprintf("%s-%s-%s", extPrefix, ROCrateFileName, rOCrateParamOrgID)
+}
+
+// paramROCrateUser ...
+func paramROCrateUser() string {
+	return fmt.Sprintf("%s-%s-%s", extPrefix, ROCrateFileName, rOCrateParamUser)
+}
+
+// paramROCrateAddress ...
+func paramROCrateAddress() string {
+	return fmt.Sprintf("%s-%s-%s", extPrefix, ROCrateFileName, rOCrateParamAddress)
+}
+
 // SetParams allows us to set parameters provided to the extension via
 // the config, e.g. CLI (or TOML?)
 func (rcFile *ROCrateFile) SetParams(params map[string]string) error {
-	// not implemented.
-
 	if params == nil {
-		panic("nil")
+		// this is unlikely to happen.
+		errors.New("extension parameters are blank")
 	}
-
-	//fmt.Printf("%v", params)
-	fmt.Println(fmt.Sprintf("%s-enabled", ROCrateFileName))
-	fmt.Println(params["ext-NNNN-ro-crate-enabled"])
-	fmt.Println(params["ext-NNNN-ro-crate-metadata"])
-	//panic("params")
-
+	enabled := params[ParamROCrateEnabled()]
+	if strings.ToLower(enabled) != "true" {
+		rcFile.enabled = false
+		return nil
+	}
+	rcFile.enabled = true
+	userConfig := userConfig{}
+	rcFile.userConfig = &userConfig
+	rcFile.userConfig.organisation = params[paramROCrateOrg()]
+	rcFile.userConfig.organisationID = params[paramROCrateOrgID()]
+	rcFile.userConfig.user = params[paramROCrateUser()]
+	rcFile.userConfig.address = params[paramROCrateAddress()]
 	return nil
 }
 
@@ -162,6 +231,7 @@ func (rcFile *ROCrateFile) GetName() string {
 	return ROCrateFileName
 }
 
+// WriteConfig ...
 func (rcFile *ROCrateFile) WriteConfig() error {
 	// not implemented.
 	return nil
@@ -175,7 +245,6 @@ func (rcFile *ROCrateFile) UpdateObjectBefore(object ocfl.Object) error {
 }
 
 // UpdateObjectAfter (after all content to the new version is written)
-// TODO...
 func (rcFile *ROCrateFile) UpdateObjectAfter(object ocfl.Object) error {
 	// not implemented.
 	return nil
@@ -183,10 +252,42 @@ func (rcFile *ROCrateFile) UpdateObjectAfter(object ocfl.Object) error {
 }
 
 // GetMetadata (is called by any tool, which wants to report about
-// content) TODO...
+// content, e.g. data will be retrieved from here for use in METS.xml
+// or PREMIS.xml.
 func (rcFile *ROCrateFile) GetMetadata(object ocfl.Object) (map[string]any, error) {
-	// not implemented.
-	return nil, nil
+	if !rcFile.enabled {
+		return nil, nil
+	}
+	var err error
+	var result = map[string]any{}
+	inventory := object.GetInventory()
+	versions := inventory.GetVersionStrings()
+	slices.Reverse(versions)
+	var metadata []byte
+	for _, ver := range versions {
+		var ok bool
+		if metadata, ok = rcFile.info[ver]; ok {
+			break
+		}
+		if metadata, err = ocfl.ReadFile(
+			object,
+			rcFile.MetaName,
+			ver,
+			rcFile.StorageType,
+			rcFile.StorageName,
+			rcFile.fsys); err == nil {
+			break
+		}
+	}
+	if metadata == nil {
+		return nil, errors.Wrapf(err, "cannot read %s", rcFile.MetaName)
+	}
+	var metaStruct = map[string]any{}
+	if err := json.Unmarshal(metadata, &metaStruct); err != nil {
+		return nil, errors.Wrapf(err, "cannot unmarshal '%s'", rcFile.MetaName)
+	}
+	result[""] = metaStruct
+	return result, nil
 }
 
 // findROCrateMeta looks for the RO-CRATE metadata file within the
@@ -214,24 +315,27 @@ func copyStream(reader io.Reader) (io.Reader, error) {
 // infoJSONExists provides a guard that ensures we know what we're
 // doing with info.json and its replacement when driven by the
 // RO-CRATE extension.
-func infoJSONExists(object ocfl.Object) bool {
+func infoJSONExists(object ocfl.Object, metaFileName string) bool {
 	inventory := object.GetInventory()
 	for _, v := range inventory.GetManifest() {
 		s := strings.Split(v[0], "/")
-		if s[len(s)-1] == "info.json" {
+		if s[len(s)-1] == metaFileName {
 			return true
 		}
 	}
 	return false
 }
 
-// writeMetafile ...
+// writeMetafile outputs the configured metadata file and content to
+// the metadata storage location.
 func (rcFile *ROCrateFile) writeMetafile(object ocfl.Object, rcMeta string) error {
-	log.Println("ROCRATE: extension...")
-	if infoJSONExists(object) {
-		return fmt.Errorf("info.json exists, ensure metafile extension is not configured")
+	if !rcFile.enabled {
+		return nil
 	}
-	mappingFile := "mapping.txt2" // TODO: make const, no magic.
+	if infoJSONExists(object, rcFile.MetaName) {
+		return fmt.Errorf("%s exists, ensure metafile extension is not configured as on", rcFile.MetaName)
+	}
+	mappingFile := rcFile.MetaName
 	log.Println(mappingFile)
 	data := []byte(rcMeta)
 	if _, err := object.AddReader(
@@ -249,15 +353,30 @@ func (rcFile *ROCrateFile) writeMetafile(object ocfl.Object, rcMeta string) erro
 	return nil
 }
 
+// writeConfigValues completes a ro-crate info.json output by adding
+// user or insitution supplied values to the structure.
+func (rcFile *ROCrateFile) writeConfigValues(rcMeta *rocrate.GocflSummary) {
+	rcMeta.Organisation = rcFile.userConfig.organisation
+	rcMeta.OrganisationID = rcFile.userConfig.organisationID
+	rcMeta.User = rcFile.userConfig.user
+	rcMeta.Address = rcFile.userConfig.address
+}
+
 func (rcFile *ROCrateFile) StreamObject(
 	object ocfl.Object,
 	reader io.Reader,
 	stateFiles []string,
 	dest string,
 ) error {
-	// TODO: check idiom, this might need to use the object data.
+	if !rcFile.enabled {
+		return nil
+	}
 	if !rcFile.findROCrateMeta(stateFiles) {
 		return nil
+	}
+	inventory := object.GetInventory()
+	if inventory == nil {
+		return errors.New("no inventory available")
 	}
 	// copy file so that it can then be sent to another interface to
 	// be read. In this case a ro-crate-metadata json reader.
@@ -265,15 +384,18 @@ func (rcFile *ROCrateFile) StreamObject(
 	if err != nil {
 		return err
 	}
-	log.Println("processing")
 	processed, err := rocrate.ProcessMetadataStream(metaCopy)
 	if err != nil {
-		panic("there shouldn't be an error...")
+		return errors.Wrapf(err, "cannot process RO-CRATE metadata")
 	}
-	log.Println("done processing")
-	rcMeta, _ := processed.Summary()
-	//rcMeta := "this is some data..."
+	rcMeta, _ := processed.GOCFLSummary()
+	rcFile.writeConfigValues(&rcMeta)
+	metaString := rcMeta.String()
+	if metaString == rocrate.StringerError {
+		return errors.New("problem creating GOCFL metadata JSON")
+	}
 	rcFile.writeMetafile(object, rcMeta.String())
+	rcFile.info[inventory.GetHead()] = []byte(rcMeta.String())
 	return nil
 }
 

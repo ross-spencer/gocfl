@@ -134,7 +134,7 @@ func (sl *MetaFile) IsRegistered() bool {
 // getPrecedents provides a way to disable the metafile extension when
 // another extension is using the info.json functionality.
 func (sl *MetaFile) getPrecedents(params map[string]string) {
-	if params[GetROCrateEnabled()] == "true" {
+	if params[ParamROCrateEnabled()] == "true" {
 		sl.override = true
 		return
 	}

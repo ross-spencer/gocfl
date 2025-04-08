@@ -2,15 +2,5 @@
     "extensionName": "NNNN-ro-crate",
     "storageType": "extension",
     "storageName": "metadata",
-    "metafilename": "info.json",
-    "metadataFile": [
-        "ro-crate-metadata.json",
-        "ro-crate-metadata.jsonld"
-    ],
-    "supportedSchema": [
-        "https://w3id.org/ro/crate/1.1/context"
-    ],
-    "documentation": [
-        "ro-crate-preview.html"
-    ]
+    "metaFileName": "info.json"
 }

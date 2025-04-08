@@ -26,15 +26,12 @@ type rocrateMeta struct {
 }
 
 type graph struct {
-	ID    string                 `json:"@id"`
-	Name  *StringOrSlice         `json:"name,omitempty"`
-	Type  *StringOrSlice         `json:"@type,omitempty"`
-	About *NodeIdentifierOrSlice `json:"about,omitempty"`
-
-	Author *NodeIdentifierOrSlice `json:"author,omitempty"`
-
-	Affiliation *NodeIdentifierOrSlice `json:"affiliation,omitempty"`
-
+	ID               string                 `json:"@id"`
+	Name             *StringOrSlice         `json:"name,omitempty"`
+	Type             *StringOrSlice         `json:"@type,omitempty"`
+	About            *NodeIdentifierOrSlice `json:"about,omitempty"`
+	Author           *NodeIdentifierOrSlice `json:"author,omitempty"`
+	Affiliation      *NodeIdentifierOrSlice `json:"affiliation,omitempty"`
 	Conforms         *NodeIdentifierOrSlice `json:"conformsTo,omitempty"`
 	ContentLocation  *NodeIdentifierOrSlice `json:"contentLocation,omitempty"`
 	ContentURL       *NodeIdentifierOrSlice `json:"contentUrl,omitempty"`
@@ -94,43 +91,56 @@ func (rcMeta *rocrateMeta) Context() string {
 	return context
 }
 
-// rocrateSummary provides a summary structure we can access safefly
+// RocrateSummary provides a summary structure we can access safefly
 // so as to reason about the data in a ro-crate.
 // The data in this structure mirrors the basic information in the
 // ro-create-preview.htm file.
-type rocrateSummary struct {
-	// graph[1]
+type RocrateSummary struct {
+	// ID via graph[1].
 	ID string
-	// graph[1]
+	// Name via graph[1].
 	Name []string
-	// graph[1]
+	// Type via graph[1].
 	Type []string
-	// graph[1]
+	// Description via graph[1].
 	Description []string
-	// graph[1]
+	// DatePublished via graph[1].
 	DatePublished string
-	// graph[1]
+	// Autho via graph[1].
 	Author []string
-	// graph[1]
+	// License via graph[1].
 	License string
-	// graph[1]
+	// HasPart via graph[1].
 	HasPart []string
-	// graph[1]
+	// ContentURL via graph[1].
 	ContentURL []string
-	// graph[1]
+	// Keywords via graph[1].
 	Keywords []string
-	// graph[1]
+	// Published via graph[1].
 	Publisher []string
-	// graph[0]
-	// Referenced by refers to sections of the RO-CRATE that reference
-	// this summary. It takes this information from the about field.
+	// About provides an alias for 'Referenced by' which refers to
+	// sections of the RO-CRATE that reference this summary. It takes
+	// this information from the about field.
+	//
+	// via graph[0].
 	About string
+}
+
+const StringerError = "error in ro-crate stringer"
+
+// String provides stringer functions for the rocrate summary object.
+func (rcSummary RocrateSummary) String() string {
+	ret, err := json.MarshalIndent(rcSummary, " ", " ")
+	if err != nil {
+		return fmt.Sprintf("%s: %s", StringerError, err)
+	}
+	return string(ret)
 }
 
 // newSummary creates a new ro-crate summary to provide safe access
 // from the caller.
-func newSummary() rocrateSummary {
-	return rocrateSummary{
+func newSummary() RocrateSummary {
+	return RocrateSummary{
 		"",
 		[]string{},
 		[]string{},
@@ -148,13 +158,13 @@ func newSummary() rocrateSummary {
 
 // Summary returns a summary ro-crate structure from the data we
 // have in-memory.
-func (rcMeta rocrateMeta) Summary() (rocrateSummary, error) {
+func (rcMeta rocrateMeta) Summary() (RocrateSummary, error) {
 
 	if len(rcMeta.Graph) == 0 {
-		return rocrateSummary{}, fmt.Errorf("ro-crate-metadata.json is empty")
+		return RocrateSummary{}, fmt.Errorf("ro-crate-metadata.json is empty")
 	}
 	if len(rcMeta.Graph) == 1 {
-		return rocrateSummary{}, fmt.Errorf("ro-crate-metadata.json is non-conformant")
+		return RocrateSummary{}, fmt.Errorf("ro-crate-metadata.json is non-conformant")
 	}
 	summary := newSummary()
 	summary.ID = rcMeta.Graph[1].ID
@@ -164,26 +174,6 @@ func (rcMeta rocrateMeta) Summary() (rocrateSummary, error) {
 	if rcMeta.Graph[1].Type != nil {
 		summary.Type = rcMeta.Graph[1].Type.Value()
 	}
-
-	// TODO: delete...
-	/*
-		fmt.Println("------------ SUMMARY ------------------")
-		fmt.Println(rcMeta.Graph[1].ID)
-		fmt.Println(rcMeta.Graph[1].Name)
-		fmt.Println(rcMeta.Graph[1].Type)
-		fmt.Println(rcMeta.Graph[1].Description)
-		fmt.Println(rcMeta.Graph[1].DatePublished)
-		fmt.Println(rcMeta.Graph[1].Author)
-		fmt.Println(rcMeta.Graph[1].License)
-		fmt.Println(rcMeta.Graph[1].HasPart)
-		fmt.Println(rcMeta.Graph[1].URL)
-		fmt.Println(rcMeta.Graph[1].Keywords)
-		fmt.Println(rcMeta.Graph[1].Publisher)
-		fmt.Println(rcMeta.Graph[1].About)
-		fmt.Println(rcMeta.Graph[1].ContentURL)
-		fmt.Println("------------ SUMMARY ------------------")
-	*/
-
 	if rcMeta.Graph[1].Description != nil {
 		summary.Description = rcMeta.Graph[1].Description.Value()
 	}
@@ -218,27 +208,13 @@ func (rcMeta rocrateMeta) Summary() (rocrateSummary, error) {
 	return summary, nil
 }
 
-// String provides a stringer for the rocrateMeta object.
+// String provides stringer functions for the rocrate meta object.
 func (rcMeta rocrateMeta) String() string {
-	if len(rcMeta.Graph) == 0 {
-		return fmt.Sprintf("ro-crate-metadata.json is empty")
+	ret, err := json.MarshalIndent(rcMeta, " ", " ")
+	if err != nil {
+		return fmt.Sprintf("%s: %s", StringerError, err)
 	}
-	if len(rcMeta.Graph) == 1 {
-		return fmt.Sprintf("ro-crate-metadata.json is non-conformant")
-	}
-	out := fmt.Sprintf(`
-Type: %s
-ID: %s
-Identifier: %s
-Published: %s
-Name: %s`,
-		rcMeta.Graph[0].Type,
-		rcMeta.Graph[0].ID,
-		rcMeta.Graph[1].Identifier,
-		rcMeta.Graph[1].DatePublished,
-		rcMeta.Graph[1].Name,
-	)
-	return strings.TrimSpace(out)
+	return string(ret)
 }
 
 /* StringOrSlice type and handler:

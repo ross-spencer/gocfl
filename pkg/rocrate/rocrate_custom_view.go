@@ -2,14 +2,19 @@
 package rocrate
 
 import (
+	"encoding/json"
 	"fmt"
+	"strings"
+	"time"
 )
 
-// gocflSummary provides a summary compatible with gocfl user's
+const stringSeparator = "; "
+
+// GocflSummary provides a summary compatible with gocfl user's
 // expectations for the info.json object.
 //
 /*
-	-- VIA ROCRATE
+	-- via RO-CRATE.
 	signature       = id
 	title           = name
 	description     = description
@@ -18,10 +23,10 @@ import (
 	keywords        = keywords
 	licenses        = license
 
-	-- AUDO
+	-- output at runtime.
 	last_changed    = now()
 
-	-- VIA CONFIG
+	-- via GOCFL config.
 	organisation_id = user.config
 	organisation    = user.config
 	user            = user.config
@@ -29,34 +34,35 @@ import (
 
 */
 //
-type gocflSummary struct {
+type GocflSummary struct {
 	// provided by ro-crate.
-	Signature   string
-	Title       string
-	Description []string
-	Created     string
-	Sets        []string
-	Keywords    []string
-	Licenses    []string
+	Signature   string `json:"signature"`
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	Created     string `json:"created"`
+	Sets        string `json:"sets"`
+	Keywords    string `json:"keywords"`
+	Licenses    string `json:"licenses"`
+	// generated at runtime, e.g. time.Now().
+	LastChanged string `json:"last_changed"`
 	// provided by caller.
-	LastChanged    string
-	OrganisationID string
-	Organisation   string
-	User           string
-	Address        string
+	OrganisationID string `json:"organisation_id"`
+	Organisation   string `json:"organisation"`
+	User           string `json:"user"`
+	Address        string `json:"address"`
 }
 
 // newGocflSummary returns an initialized gocflSummary object for
 // maximum safety.
-func newGocflSummary() gocflSummary {
-	return gocflSummary{
+func newGocflSummary() GocflSummary {
+	return GocflSummary{
 		"",
 		"",
-		[]string{},
 		"",
-		[]string{},
-		[]string{},
-		[]string{},
+		"",
+		"",
+		"",
+		"",
 		// provided by caller.
 		"",
 		"",
@@ -66,12 +72,42 @@ func newGocflSummary() gocflSummary {
 	}
 }
 
-func (rcMeta rocrateMeta) GOCFLSummary() (gocflSummary, error) {
+// String provides stringer functions for the gocfl summary object.
+func (gocflSummary GocflSummary) String() string {
+	ret, err := json.MarshalIndent(gocflSummary, " ", " ")
+	if err != nil {
+		return fmt.Sprintf("%s: %s", StringerError, err)
+	}
+	return string(ret)
+}
+
+// joinStrings simplifies string join functions for us so that we can
+// exchange string separator values easily.
+func joinStrings(inputString []string) string {
+	return strings.Join(inputString, stringSeparator)
+}
+
+// currentTime provides a module level approach to replacing the time
+// functions, e.g. for testing.
+var currentTime = getTime
+
+// getTime provides a helpter to return the current time formatted as
+// a string.
+func getTime(utc bool) string {
+	if utc {
+		t := time.Now().UTC()
+		return t.Format("2006-01-02T15:04:05Z")
+	}
+	t := time.Now()
+	return t.Format("2006-01-02T15:04:05")
+}
+
+func (rcMeta rocrateMeta) GOCFLSummary() (GocflSummary, error) {
 	if len(rcMeta.Graph) == 0 {
-		return gocflSummary{}, fmt.Errorf("ro-crate-metadata.json is empty")
+		return GocflSummary{}, fmt.Errorf("ro-crate-metadata.json is empty")
 	}
 	if len(rcMeta.Graph) == 1 {
-		return gocflSummary{}, fmt.Errorf("ro-crate-metadata.json is non-conformant")
+		return GocflSummary{}, fmt.Errorf("ro-crate-metadata.json is non-conformant")
 	}
 	summary := newGocflSummary()
 	summary.Signature = rcMeta.Graph[1].ID
@@ -82,17 +118,18 @@ func (rcMeta rocrateMeta) GOCFLSummary() (gocflSummary, error) {
 		}
 	}
 	if rcMeta.Graph[1].Type != nil {
-		summary.Sets = rcMeta.Graph[1].Type.Value()
+		summary.Sets = joinStrings(rcMeta.Graph[1].Type.Value())
 	}
 	if rcMeta.Graph[1].Description != nil {
-		summary.Description = rcMeta.Graph[1].Description.Value()
+		summary.Description = joinStrings(rcMeta.Graph[1].Description.Value())
 	}
 	summary.Created = rcMeta.Graph[1].DatePublished
 	if rcMeta.Graph[1].License != nil {
-		summary.Licenses = rcMeta.Graph[1].License.StringSlice()
+		summary.Licenses = joinStrings(rcMeta.Graph[1].License.StringSlice())
 	}
 	if rcMeta.Graph[1].Keywords != nil {
-		summary.Keywords = rcMeta.Graph[1].Keywords.Value()
+		summary.Keywords = joinStrings(rcMeta.Graph[1].Keywords.Value())
 	}
+	summary.LastChanged = currentTime(true)
 	return summary, nil
 }
