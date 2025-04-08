@@ -56,7 +56,19 @@ Address="https://github.com/ocfl-archive/gocfl"
 #
 [Extension]
 [Extension.NNNN-metafile]
-Source=""
+source=""
+
+[Extension.NNNN-ro-crate]
+# --ext-NNNN-ro-crate-enabled
+enabled="true"
+# --ext-NNNN-ro-crate-organisation
+organisation="org1"
+# --ext-NNNN-ro-crate-organisationID
+organisationID="ID1"
+# --ext-NNNN-ro-crate-user
+user="user1"
+# --ext-NNNN-ro-crate-address
+address="address1"
 
 [Extension.NNNN-mets]
 # --ext-NNNN-mets-descriptive-metadata
